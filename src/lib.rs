@@ -1,8 +1,8 @@
 #![doc = include_str!("../README.md")]
 mod constants;
-mod errors;
+pub mod errors;
 mod impls;
-mod inchi;
+pub mod inchi;
 mod token;
 mod traits;
 mod version;

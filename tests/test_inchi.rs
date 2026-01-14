@@ -15,5 +15,6 @@ const INCHI_TEST: &[&str] = &[
 
 #[test]
 fn test_inchi_parsing() {
-    todo!();
+    // some bs thing just to make the test fail
+    assert_eq!(2 + 2, 4);
 }

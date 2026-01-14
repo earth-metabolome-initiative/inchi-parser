@@ -1,5 +1,7 @@
+//! Module for the stereochemistry layer of an InChI.
 use crate::traits::prefix::Prefix;
 
+/// The stereochemistry layer of an InChI.
 pub struct StereochemistryLayer;
 
 struct DoubleBondSublayer;

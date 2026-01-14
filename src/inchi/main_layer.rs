@@ -1,14 +1,17 @@
-use crate::traits::prefix::Prefix;
+//! Module for the main layer of an InChI.
 
+use crate::traits::prefix::Prefix;
+use molecular_formulas::MolecularFormula;
+
+/// The main layer of an InChI.
 pub struct MainLayer {
-    chemical_formula: ChemicalFormulaSubLayer,
+    chemical_formula: MolecularFormula,
     atom_connections: AtomConnectionsSubLayer,
     hydrogens: HydrogensSubLayer,
 }
 
-struct ChemicalFormulaSubLayer;
-struct AtomConnectionsSubLayer;
-struct HydrogensSubLayer;
+pub(crate) struct AtomConnectionsSubLayer;
+pub(crate) struct HydrogensSubLayer;
 
 impl Prefix for AtomConnectionsSubLayer {
     const PREFIX: char = 'c';

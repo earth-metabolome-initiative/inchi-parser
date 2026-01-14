@@ -1,3 +1,5 @@
+//! Module for the InChI structure and its layers.
+
 pub mod charge;
 pub mod fixed_hydrogen;
 pub mod isotope;
@@ -13,6 +15,7 @@ pub use stereochemistry::StereochemistryLayer;
 
 use crate::version::Version;
 
+/// The InChI structure
 pub struct InChI<V: Version = crate::version::StandardVersion1_07_1> {
     main_layer: MainLayer,
     charge: ChargeLayer,
