@@ -1,9 +1,8 @@
 //! Module for InChI-related errors.
 use molecular_formulas::errors::Error as MolecularFormulaError;
-use thiserror::Error;
 
 /// Errors that can occur while parsing or handling InChIs.
-#[derive(Error, Debug)]
+#[derive(thiserror::Error, Debug)]
 pub enum Error {
     /// When the ""InChI="" prefix is missing.
     #[error("Missing InChI= prefix")]
@@ -22,5 +21,22 @@ pub enum Error {
     NotHillSorted,
     /// Wrong prefix for the layer/sublayer
     #[error("Wrong prefix for the layer")]
-    WrongPrefix(String),
+    WrongPrefix,
+    /// If the molecular formula contains a mixture but the atom connections layer does not
+    #[error("Molecular formula contains {0} mixtures but atom connection has {1}.")]
+    FormulaAndConnectionLayerMixtureMismatch(usize, usize),
+    /// Errors while tokenizing the atom connection layer
+    #[error("Atom connection tokenization error: {0}")]
+    AtomConnectionTokenError(#[from] AtomConnectionTokenError),
+}
+
+/// Errors that can occur while tokenizing the atom connection layer.
+#[derive(thiserror::Error, Debug)]
+pub enum AtomConnectionTokenError {
+    /// Invalid token encountered
+    #[error("Invalid token encountered: '{0}'")]
+    InvalidToken(char),
+    /// Invalid atom index encountered
+    #[error("Invalid atom index encountered: '{0}'")]
+    InvalidAtomIndex(String),
 }

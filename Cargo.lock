@@ -11,7 +11,7 @@ checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
 [[package]]
 name = "elements-rs"
 version = "0.1.0"
-source = "git+https://github.com/earth-metabolome-initiative/elements-rs?branch=main#8f1029ebbc67a6cb73644936f21db299021a207d"
+source = "git+https://github.com/earth-metabolome-initiative/elements-rs?branch=main#757e63005f39be16fc0e9e725566d47fe978939e"
 dependencies = [
  "multi_ranged",
  "serde",
@@ -23,7 +23,7 @@ dependencies = [
 [[package]]
 name = "elements-rs"
 version = "0.1.0"
-source = "git+https://github.com/earth-metabolome-initiative/elements-rs#8f1029ebbc67a6cb73644936f21db299021a207d"
+source = "git+https://github.com/earth-metabolome-initiative/elements-rs#757e63005f39be16fc0e9e725566d47fe978939e"
 dependencies = [
  "multi_ranged",
  "serde",
@@ -33,10 +33,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "fallible-iterator"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2acce4a10f12dc2fb14a218589d4f1f62ef011b2d0cc4b3cb1bba8e94da14649"
+
+[[package]]
 name = "fmtastic"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1216c1a577486ca3c8153aa344ce8f985bb99e2e8e7a62f0119ecd924f7499a1"
+
+[[package]]
+name = "geometric-traits"
+version = "0.1.0"
+source = "git+https://github.com/earth-metabolome-initiative/geometric-traits#b4b55cb80b20cedc1f977f7abe9f45b6852ee502"
+dependencies = [
+ "lender",
+ "multi_ranged",
+ "num-traits",
+ "thiserror",
+]
 
 [[package]]
 name = "heck"
@@ -49,14 +66,37 @@ name = "inchi-parser"
 version = "0.1.0"
 dependencies = [
  "elements-rs 0.1.0 (git+https://github.com/earth-metabolome-initiative/elements-rs)",
+ "geometric-traits",
  "molecular_formulas",
  "thiserror",
 ]
 
 [[package]]
+name = "lender"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c150e24afda8f769930a339cb5ad6e182101fdf1165c30c157b33ce5050fd7ad"
+dependencies = [
+ "fallible-iterator",
+ "lender-derive",
+ "stable_try_trait_v2",
+]
+
+[[package]]
+name = "lender-derive"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "556faf0c9adb22669a5f9f6b4ed804c8048d205dcd00fadd463affbb02931d26"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "molecular_formulas"
 version = "0.1.0"
-source = "git+https://github.com/earth-metabolome-initiative/molecular-formulas#145f5648717ff9f727f62f6620d58a7271c5790a"
+source = "git+https://github.com/earth-metabolome-initiative/molecular-formulas#8007129cc7a252720c8475015702553caa4eb4cc"
 dependencies = [
  "elements-rs 0.1.0 (git+https://github.com/earth-metabolome-initiative/elements-rs?branch=main)",
  "fmtastic",
@@ -132,6 +172,12 @@ dependencies = [
  "quote",
  "syn",
 ]
+
+[[package]]
+name = "stable_try_trait_v2"
+version = "1.75.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c4e48411f4db8ccca0470bfb67e3bb821af4227d455aa147917d8d109be0d13"
 
 [[package]]
 name = "strum"

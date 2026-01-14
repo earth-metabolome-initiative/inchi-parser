@@ -1,19 +1,22 @@
 //! Module for the main layer of an InChI.
 
 use crate::traits::prefix::Prefix;
+use geometric_traits::prelude::*;
 use molecular_formulas::MolecularFormula;
 
 /// The main layer of an InChI.
 pub struct MainLayer {
     chemical_formula: MolecularFormula,
-    atom_connections: AtomConnectionsSubLayer,
+    atom_connections: Vec<MolecularGraph>,
     hydrogens: HydrogensSubLayer,
 }
 
-pub(crate) struct AtomConnectionsSubLayer;
+/// A molecular graph that is undirected.
+pub type MolecularGraph = GenericGraph<usize, SymmetricCSR2D<CSR2D<usize, usize, usize>>>;
+
 pub(crate) struct HydrogensSubLayer;
 
-impl Prefix for AtomConnectionsSubLayer {
+impl Prefix for Vec<MolecularGraph> {
     const PREFIX: char = 'c';
 }
 

@@ -1,4 +1,5 @@
 use crate::inchi::InChI;
+use crate::inchi::main_layer::MolecularGraph;
 use crate::traits::parse::ParseLayer;
 use crate::version::Version;
 use molecular_formulas::MolecularFormula;
@@ -31,10 +32,10 @@ impl<V: Version> FromStr for InChI<V> {
         };
 
         // Then we parse the molecular formula layer
-        let chemical_formula = MolecularFormula::parse(mf_layer, &mut ())?;
+        let chemical_formula = MolecularFormula::parse(mf_layer, ())?;
 
         // The atom connection layer
-        todo!();
+        let undi_graphs = <Vec<MolecularGraph> as ParseLayer>::parse(rest, &chemical_formula)?;
 
         // The hydrogen layer
         todo!();
