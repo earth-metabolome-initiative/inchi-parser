@@ -1,6 +1,6 @@
 use std::{fmt::Display, str::Chars};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ConnectionLayerToken {
     OpenRoundBracket,
     CloseRoundBracket,
@@ -52,7 +52,9 @@ where
                     }
                 }
                 let number = number_str.parse::<usize>().map_err(|_| {
-                    crate::errors::AtomConnectionTokenError::InvalidAtomIndex(number_str.clone())
+                    crate::errors::AtomConnectionTokenError::OverflowingAtomIndex {
+                        maximum_size: usize::MAX,
+                    }
                 })?;
                 Ok(ConnectionLayerToken::Atom(number))
             }

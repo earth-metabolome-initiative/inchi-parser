@@ -1,8 +1,9 @@
-mod connection_layer_edge_iter;
-pub mod connection_layer_token_iter;
+pub mod connection_layer_base_token_iter;
 use crate::inchi::main_layer::MolecularGraph;
 use crate::traits::parse::ParseLayer;
 use crate::traits::prefix::Prefix;
+mod from_connection_layer_token;
+use from_connection_layer_token::FromConnectionLayer;
 use geometric_traits::prelude::*;
 use molecular_formulas::MolecularFormula;
 use std::str::FromStr;
@@ -21,12 +22,12 @@ impl ParseLayer for MolecularFormula {
     }
 }
 
-impl ParseLayer for Vec<MolecularGraph> {
+impl ParseLayer for Option<Vec<MolecularGraph>> {
     type Context<'a> = &'a MolecularFormula;
     type Error = crate::errors::Error;
     fn parse(input: &str, context: Self::Context<'_>) -> Result<Self, Self::Error> {
         let Some(s) = input.strip_prefix(Self::PREFIX) else {
-            return Err(Self::Error::WrongPrefix);
+            return Ok(None);
         };
 
         // Check if the connection layer and the molecular formula have the same number of mixtures
@@ -42,10 +43,12 @@ impl ParseLayer for Vec<MolecularGraph> {
         // If there are multiple molecules in the molecular formula, we need to split the atom connections layer
         // at the ';' character
 
-        s.split(';')
-            .zip(context.mixtures())
-            .map(|(input, mixture)| MolecularGraph::parse(input, mixture))
-            .collect()
+        Ok(Some(
+            s.split(';')
+                .zip(context.mixtures())
+                .map(|(input, mixture)| MolecularGraph::parse(input, mixture))
+                .collect::<Result<Vec<_>, _>>()?,
+        ))
     }
 }
 
@@ -54,12 +57,8 @@ impl ParseLayer for MolecularGraph {
     type Error = crate::errors::Error;
     fn parse(input: &str, context: Self::Context<'_>) -> Result<Self, Self::Error> {
         let vocab_size = context.number_of_elements()?;
-        let mut edges = Vec::new();
-
-        let tokens = input.into();
-        for token_result in tokens {
-            let token = token_result?;
-        }
+        let mut edges: Vec<(usize, usize)> = Vec::from_connection_layer_token(input)?;
+        edges.sort_unstable();
 
         let edges: SymmetricCSR2D<CSR2D<usize, usize, usize>> = UndiEdgesBuilder::default()
             .expected_number_of_edges(edges.len())

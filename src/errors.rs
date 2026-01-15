@@ -1,6 +1,5 @@
 //! Module for InChI-related errors.
-use crate::impls::parse_main_layer::connection_layer_token_iter::ConnectionLayerToken;
-use geometric_traits::errors;
+use crate::impls::parse_main_layer::connection_layer_base_token_iter::ConnectionLayerToken;
 use molecular_formulas::errors::Error as MolecularFormulaError;
 
 /// Errors that can occur while parsing or handling InChIs.
@@ -30,34 +29,33 @@ pub enum Error {
     /// Errors while tokenizing the atom connection layer
     #[error("Atom connection tokenization error: {0}")]
     AtomConnectionTokenError(#[from] AtomConnectionTokenError),
+    /// TODO! TEMPORARY ERROR TO REMOVE!
+    #[error("Unimplemented feature: {0}")]
+    UnimplementedFeature(&'static str),
 }
 
 /// Errors that can occur while tokenizing the atom connection layer.
-#[derive(thiserror::Error, Debug)]
+#[derive(thiserror::Error, Debug, Clone, Copy)]
 pub enum AtomConnectionTokenError {
     /// Invalid token encountered
     #[error("Invalid token encountered: '{0}'")]
     InvalidToken(char),
     /// Invalid atom index encountered
-    #[error("Invalid atom index encountered: '{0}'")]
-    InvalidAtomIndex(String),
-}
-
-#[derive(thiserror::Error, Debug)]
-pub enum AtomConnectionEdgeError {
-    /// A token error in the atom connection layer
-    #[error("Token error")]
-    AtomConnectionTokenError(#[from] AtomConnectionTokenError),
-    /// Orphan atom index : The atom is present in the atom connection layer but has no edges to attach to
-    #[error("The atom {0} is present in the atom connection layer but has no edges.")]
-    OrphanAtomIndex(usize),
-    /// Unbalanced closed parenthesis
-    #[error("Unbalanced closed parenthesis")]
-    UnbalancedClosedParenthesis,
-    /// Unbalanced open parenthesis
-    #[error("Unbalanced open parenthesis")]
-    UnbalancedOpenParenthesis,
-    /// Unexpected token after open parenthesis
-    #[error("An unexpected toekn after parenthesis : '{0}'")]
-    UnexpectedTokenAfterParenthesis(ConnectionLayerToken),
+    #[error("Atom index found larger than maximum size of {maximum_size}")]
+    OverflowingAtomIndex {
+        /// The maximum size allowed for atom indices
+        maximum_size: usize,
+    },
+    /// The underlying iterator is intermittently empty
+    #[error("The underlying iterator is empty")]
+    UnderlyingIteratorEmpty,
+    /// Two atom indices cannot be successive
+    #[error("Two atom indices cannot be successive")]
+    ConsecutiveAtomIndices,
+    /// Illegal consecutive tokens
+    #[error("Illegal consecutive tokens: '{0}' followed by '{1}'")]
+    IllegalConsecutiveTokens(ConnectionLayerToken, ConnectionLayerToken),
+    /// Unexpected end of input
+    #[error("Unexpected end of input")]
+    UnexpectedEndOfInput(ConnectionLayerToken),
 }

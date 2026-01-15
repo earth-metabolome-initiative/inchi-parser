@@ -7,7 +7,7 @@ use molecular_formulas::MolecularFormula;
 /// The main layer of an InChI.
 pub struct MainLayer {
     chemical_formula: MolecularFormula,
-    atom_connections: Vec<MolecularGraph>,
+    atom_connections: Option<Vec<MolecularGraph>>,
     hydrogens: HydrogensSubLayer,
 }
 
@@ -16,7 +16,7 @@ pub type MolecularGraph = GenericGraph<usize, SymmetricCSR2D<CSR2D<usize, usize,
 
 pub(crate) struct HydrogensSubLayer;
 
-impl Prefix for Vec<MolecularGraph> {
+impl Prefix for Option<Vec<MolecularGraph>> {
     const PREFIX: char = 'c';
 }
 
