@@ -67,7 +67,7 @@ version = "0.1.0"
 dependencies = [
  "elements-rs 0.1.0 (git+https://github.com/earth-metabolome-initiative/elements-rs)",
  "geometric-traits",
- "molecular_formulas",
+ "molecular-formulas",
  "thiserror",
 ]
 
@@ -94,9 +94,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "molecular_formulas"
+name = "molecular-formulas"
 version = "0.1.0"
-source = "git+https://github.com/earth-metabolome-initiative/molecular-formulas#8007129cc7a252720c8475015702553caa4eb4cc"
+source = "git+https://github.com/earth-metabolome-initiative/molecular-formulas#52de363ae83c7717384ccc8ca153afc007eb7163"
 dependencies = [
  "elements-rs 0.1.0 (git+https://github.com/earth-metabolome-initiative/elements-rs?branch=main)",
  "fmtastic",

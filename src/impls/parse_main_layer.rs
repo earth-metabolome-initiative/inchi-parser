@@ -1,4 +1,5 @@
-mod token;
+mod connection_layer_edge_iter;
+pub mod connection_layer_token_iter;
 use crate::inchi::main_layer::MolecularGraph;
 use crate::traits::parse::ParseLayer;
 use crate::traits::prefix::Prefix;
@@ -55,7 +56,7 @@ impl ParseLayer for MolecularGraph {
         let vocab_size = context.number_of_elements()?;
         let mut edges = Vec::new();
 
-        let tokens = token::TokenIter::from(input.chars());
+        let tokens = input.into();
         for token_result in tokens {
             let token = token_result?;
         }

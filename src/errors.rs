@@ -1,4 +1,6 @@
 //! Module for InChI-related errors.
+use crate::impls::parse_main_layer::connection_layer_token_iter::ConnectionLayerToken;
+use geometric_traits::errors;
 use molecular_formulas::errors::Error as MolecularFormulaError;
 
 /// Errors that can occur while parsing or handling InChIs.
@@ -39,4 +41,23 @@ pub enum AtomConnectionTokenError {
     /// Invalid atom index encountered
     #[error("Invalid atom index encountered: '{0}'")]
     InvalidAtomIndex(String),
+}
+
+#[derive(thiserror::Error, Debug)]
+pub enum AtomConnectionEdgeError {
+    /// A token error in the atom connection layer
+    #[error("Token error")]
+    AtomConnectionTokenError(#[from] AtomConnectionTokenError),
+    /// Orphan atom index : The atom is present in the atom connection layer but has no edges to attach to
+    #[error("The atom {0} is present in the atom connection layer but has no edges.")]
+    OrphanAtomIndex(usize),
+    /// Unbalanced closed parenthesis
+    #[error("Unbalanced closed parenthesis")]
+    UnbalancedClosedParenthesis,
+    /// Unbalanced open parenthesis
+    #[error("Unbalanced open parenthesis")]
+    UnbalancedOpenParenthesis,
+    /// Unexpected token after open parenthesis
+    #[error("An unexpected toekn after parenthesis : '{0}'")]
+    UnexpectedTokenAfterParenthesis(ConnectionLayerToken),
 }

@@ -1,3 +1,6 @@
+use std::{fmt::Display, str::Chars};
+
+#[derive(Debug)]
 pub enum ConnectionLayerToken {
     OpenRoundBracket,
     CloseRoundBracket,
@@ -6,13 +9,25 @@ pub enum ConnectionLayerToken {
     Comma,
 }
 
+impl Display for ConnectionLayerToken {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Dash => write!(f, "-"),
+            Self::CloseRoundBracket => write!(f, ")"),
+            Self::Comma => write!(f, ","),
+            Self::OpenRoundBracket => write!(f, "("),
+            Self::Atom(atom_index) => write!(f, "{atom_index}"),
+        }
+    }
+}
+
 /// Iterator over the `Token`s found in a provided string.
-pub(super) struct TokenIter<I: Iterator<Item = char>> {
+pub(super) struct ConnectionLayerTokenIter<I: Iterator<Item = char>> {
     /// The peekable chars iterator
     chars: std::iter::Peekable<I>,
 }
 
-impl<I> TokenIter<I>
+impl<I> ConnectionLayerTokenIter<I>
 where
     I: Iterator<Item = char>,
 {
@@ -46,15 +61,21 @@ where
     }
 }
 
-impl<I: Iterator<Item = char>> Iterator for TokenIter<I> {
+impl<I: Iterator<Item = char>> Iterator for ConnectionLayerTokenIter<I> {
     type Item = Result<ConnectionLayerToken, crate::errors::AtomConnectionTokenError>;
     fn next(&mut self) -> Option<Self::Item> {
         self.chars.next().map(|current_char| self.parse_token(current_char))
     }
 }
 
-impl<I: Iterator<Item = char>> From<I> for TokenIter<I> {
+impl<I: Iterator<Item = char>> From<I> for ConnectionLayerTokenIter<I> {
     fn from(chars: I) -> Self {
         Self { chars: chars.peekable() }
+    }
+}
+
+impl<'a> From<&'a str> for ConnectionLayerTokenIter<Chars<'a>> {
+    fn from(value: &'a str) -> Self {
+        value.chars().into()
     }
 }
