@@ -4,10 +4,12 @@ use crate::traits::prefix::Prefix;
 use geometric_traits::prelude::*;
 use molecular_formulas::MolecularFormula;
 
+/// The atom connection layer
+pub type AtomConnectionLayer = Option<Vec<MolecularGraph>>;
 /// The main layer of an InChI.
 pub struct MainLayer {
     chemical_formula: MolecularFormula,
-    atom_connections: Option<Vec<MolecularGraph>>,
+    atom_connections: AtomConnectionLayer,
     hydrogens: HydrogensSubLayer,
 }
 
@@ -16,7 +18,7 @@ pub type MolecularGraph = GenericGraph<usize, SymmetricCSR2D<CSR2D<usize, usize,
 
 pub(crate) struct HydrogensSubLayer;
 
-impl Prefix for Option<Vec<MolecularGraph>> {
+impl Prefix for AtomConnectionLayer {
     const PREFIX: char = 'c';
 }
 

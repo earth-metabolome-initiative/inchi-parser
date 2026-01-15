@@ -1,5 +1,5 @@
 pub mod connection_layer_base_token_iter;
-use crate::inchi::main_layer::MolecularGraph;
+use crate::inchi::main_layer::{AtomConnectionLayer, MolecularGraph};
 use crate::traits::parse::ParseLayer;
 use crate::traits::prefix::Prefix;
 mod from_connection_layer_token;
@@ -22,7 +22,7 @@ impl ParseLayer for MolecularFormula {
     }
 }
 
-impl ParseLayer for Option<Vec<MolecularGraph>> {
+impl ParseLayer for AtomConnectionLayer {
     type Context<'a> = &'a MolecularFormula;
     type Error = crate::errors::Error;
     fn parse(input: &str, context: Self::Context<'_>) -> Result<Self, Self::Error> {

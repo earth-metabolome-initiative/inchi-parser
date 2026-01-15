@@ -1,5 +1,5 @@
 use crate::inchi::InChI;
-use crate::inchi::main_layer::MolecularGraph;
+use crate::inchi::main_layer::{AtomConnectionLayer, MolecularGraph};
 use crate::traits::parse::ParseLayer;
 use crate::version::Version;
 use molecular_formulas::MolecularFormula;
@@ -36,14 +36,13 @@ impl<V: Version> FromStr for InChI<V> {
         // Then we parse the molecular formula layer
         let chemical_formula = MolecularFormula::parse(mf_layer, ())?;
 
-        let Some((next_later, rest)) = rest.split_once('/') else {
+        let Some((next_layer, rest)) = rest.split_once('/') else {
             // if there is no '/' left, the InChI is invalid
             return Err(Self::Err::MissingForwardSlash);
         };
 
         // The atom connection layer
-        let undi_graphs =
-            <Option<Vec<MolecularGraph>> as ParseLayer>::parse(next_later, &chemical_formula)?;
+        let undi_graphs = <AtomConnectionLayer>::parse(next_layer, &chemical_formula)?;
 
         // The hydrogen layer
         Err(crate::errors::Error::UnimplementedFeature("Hydrogen layer parsing not implemented"))
