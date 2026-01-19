@@ -1,4 +1,5 @@
 //! Parses a validated iterator of connection layer tokens into a vector of edges.
+use core::num::NonZero;
 
 use std::iter::Peekable;
 
@@ -22,58 +23,136 @@ pub(super) trait FromConnectionLayer: Sized {
     fn from_connection_layer_token(tokens: &str) -> Result<Self, AtomConnectionTokenError>;
 }
 
-fn parse_atom_successor(
-    atom_index: usize,
+/// Adds an edge between two atom indices to the edges vector.
+fn add_edge(
+    left_index: NonZero<usize>,
+    right_index: NonZero<usize>,
     edges: &mut Vec<(usize, usize)>,
-    iter: &mut Peekable<ConnectionLayerTokenIter<std::str::Chars<'_>>>,
 ) -> Result<(), AtomConnectionTokenError> {
-    if let Some(token) = iter.next().transpose()? {
-        match token {
-            ConnectionLayerToken::Dash => match iter.peek().copied().transpose()? {
-                Some(ConnectionLayerToken::Atom(other_index)) => {
-                    edges.push((atom_index, other_index));
-                    Ok(())
-                }
-                Some(other_token) => Err(AtomConnectionTokenError::IllegalConsecutiveTokens(
-                    ConnectionLayerToken::Dash,
-                    other_token,
-                )),
-                None => {
-                    Err(AtomConnectionTokenError::UnexpectedEndOfInput(ConnectionLayerToken::Dash))
-                }
-            },
-            ConnectionLayerToken::OpenRoundBracket => match iter.peek().copied().transpose()? {
-                Some(ConnectionLayerToken::Atom(other_index)) => {
-                    edges.push((atom_index, other_index));
-                    Ok(())
-                }
-                Some(other_token) => Err(AtomConnectionTokenError::IllegalConsecutiveTokens(
-                    ConnectionLayerToken::Dash,
-                    other_token,
-                )),
-                None => {
-                    Err(AtomConnectionTokenError::UnexpectedEndOfInput(ConnectionLayerToken::Dash))
-                }
-            },
-            other => unimplemented!("Unhandled token after Atom: {:?}", other),
+    if left_index == right_index {
+        return Err(AtomConnectionTokenError::SelfLoopDetected(left_index));
+    }
+
+    let left = usize::from(left_index) - 1;
+    let right = usize::from(right_index) - 1;
+    edges.push(if left <= right { (left, right) } else { (right, left) });
+
+    Ok(())
+}
+
+fn parse_atom_successor(
+    atom_index: NonZero<usize>,
+    edges: &mut Vec<(usize, usize)>,
+    iter: &mut Peekable<ConnectionLayerTokenIter<'_>>,
+) -> Result<(), AtomConnectionTokenError> {
+    let Some(maybe_token) = iter.peek().copied().transpose()? else {
+        return Ok(());
+    };
+
+    // If we encountered a closing bracket, we return to the previous level
+    // and we do not consume the token here.
+    if matches!(
+        maybe_token.as_ref(),
+        ConnectionLayerToken::CloseRoundBracket | ConnectionLayerToken::Comma
+    ) {
+        return Ok(());
+    }
+
+    // We consume the token here since we only peeked before.
+    let Some(token) = iter.next().transpose()? else {
+        return Ok(());
+    };
+
+    match token.as_ref() {
+        ConnectionLayerToken::Atom(other_atom_index) => {
+            add_edge(atom_index, *other_atom_index, edges)
         }
-    } else {
-        Ok(())
+        ConnectionLayerToken::OpenRoundBracket => {
+            let Some(next_token) = iter.next().transpose()? else {
+                return Err(AtomConnectionTokenError::UnexpectedEndOfInput(token));
+            };
+            match next_token.as_ref() {
+                ConnectionLayerToken::Atom(first_atom_in_brackets_index) => {
+                    add_edge(atom_index, *first_atom_in_brackets_index, edges)?;
+                    parse_atom_successor(*first_atom_in_brackets_index, edges, iter)?;
+                    loop {
+                        let Some(inner_token) = iter.next().transpose()? else {
+                            todo!("AtomConnectionTokenError::UnexpectedEndOfInput");
+                        };
+
+                        return match inner_token.as_ref() {
+                            ConnectionLayerToken::CloseRoundBracket => {
+                                match iter.peek().copied().transpose()? {
+                                    Some(ConnectionLayerToken::Atom(
+                                        first_atom_out_of_brackets_index,
+                                    )) => {
+                                        add_edge(
+                                            atom_index,
+                                            first_atom_out_of_brackets_index,
+                                            edges,
+                                        )?;
+                                        Ok(())
+                                    }
+                                    Some(other_token) => {
+                                        Err(AtomConnectionTokenError::IllegalConsecutiveTokens(
+                                            ConnectionLayerToken::CloseRoundBracket,
+                                            other_token,
+                                        ))
+                                    }
+                                    None => Err(AtomConnectionTokenError::UnexpectedEndOfInput(
+                                        ConnectionLayerToken::CloseRoundBracket,
+                                    )),
+                                }
+                            }
+                            ConnectionLayerToken::Comma => match iter.next().transpose()? {
+                                Some(ConnectionLayerToken::Atom(atom_index_after_comma)) => {
+                                    add_edge(atom_index, atom_index_after_comma, edges)?;
+                                    parse_atom_successor(atom_index_after_comma, edges, iter)?;
+                                    continue;
+                                }
+                                Some(other_token) => {
+                                    Err(AtomConnectionTokenError::IllegalConsecutiveTokens(
+                                        ConnectionLayerToken::CloseRoundBracket,
+                                        other_token,
+                                    ))
+                                }
+                                None => Err(AtomConnectionTokenError::UnexpectedEndOfInput(
+                                    ConnectionLayerToken::CloseRoundBracket,
+                                )),
+                            },
+                            ConnectionLayerToken::Atom(_) => {
+                                continue;
+                            }
+                            other_token => Err(AtomConnectionTokenError::IllegalConsecutiveTokens(
+                                ConnectionLayerToken::OpenRoundBracket,
+                                other_token,
+                            )),
+                        };
+                    }
+                }
+                _ => Err(AtomConnectionTokenError::IllegalConsecutiveTokens(token, next_token)),
+            }
+        }
+        other => unimplemented!("Unhandled token after Atom: {:?}", other),
     }
 }
 
 impl FromConnectionLayer for Vec<(usize, usize)> {
     fn from_connection_layer_token(tokens: &str) -> Result<Self, AtomConnectionTokenError> {
         let mut edges = Vec::new();
-        let iter: ConnectionLayerTokenIter<_> = tokens.into();
+        let iter: ConnectionLayerTokenIter = tokens.into();
         let mut peekable = iter.peekable();
 
-        while let Some(token) = peekable.next() {
-            match token? {
+        while let Some(token) = peekable.next().transpose()? {
+            match token.as_ref() {
                 ConnectionLayerToken::Atom(atom_index) => {
-                    parse_atom_successor(atom_index, &mut edges, &mut peekable)?
+                    parse_atom_successor(*atom_index, &mut edges, &mut peekable)?
                 }
-                _ => unreachable!("Unhandled token type"),
+                ConnectionLayerToken::Comma
+                | ConnectionLayerToken::OpenRoundBracket
+                | ConnectionLayerToken::CloseRoundBracket => {
+                    return Err(AtomConnectionTokenError::IllegalStartingToken(token));
+                }
             }
         }
 

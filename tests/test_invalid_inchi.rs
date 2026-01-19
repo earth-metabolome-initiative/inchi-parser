@@ -1,4 +1,6 @@
 //! Tests for invalid InChI strings
+use core::num::NonZero;
+use inchi_parser::errors::AtomConnectionTokenError;
 use inchi_parser::errors::Error;
 use inchi_parser::inchi::InChI;
 
@@ -35,4 +37,52 @@ fn test_not_hill_sorted() {
     let inchi_str = "InChI=1S/C2OH6/"; // Missing '/' before layers
     let result = inchi_str.parse::<InChI>();
     assert!(matches!(result, Err(Error::NotHillSorted)));
+}
+
+#[test]
+fn test_unbalanced_parenthesis() {
+    let inchi_str = "InChI=1S/C2H6O/c1)/";
+    let result = inchi_str.parse::<InChI>();
+    assert!(matches!(
+        result,
+        Err(Error::AtomConnectionTokenError(
+            AtomConnectionTokenError::ClosingBracketBeforeOpeningBracket
+        ))
+    ));
+}
+
+#[test]
+fn test_self_loop_comma() {
+    let inchi_str = "InChI=1S/C16H25NS/c1-12(2)13-7-5-8-15(3)9-6-10-16(4,16(13)15)17-11-18/h13-14H,1,5-10H2,2-4H3/t13-,14-,15+,16-/m1/s1";
+    let result = inchi_str.parse::<InChI>();
+    assert_eq!(
+        result,
+        Err(Error::AtomConnectionTokenError(AtomConnectionTokenError::SelfLoopDetected(
+            NonZero::new(16).unwrap()
+        )))
+    );
+}
+
+#[test]
+fn test_self_loop_dash() {
+    let inchi_str = "InChI=1S/C16H25NS/c1-12(2)13-7-5-5-15(3)9-6-10-16(4,16(13)15)17-11-18/h13-14H,1,5-10H2,2-4H3/t13-,14-,15+,16-/m1/s1";
+    let result = inchi_str.parse::<InChI>();
+    assert_eq!(
+        result,
+        Err(Error::AtomConnectionTokenError(AtomConnectionTokenError::SelfLoopDetected(
+            NonZero::new(5).unwrap()
+        )))
+    );
+}
+
+#[test]
+fn test_self_loop_parenthesis() {
+    let inchi_str = "InChI=1S/C16H25NS/c1-12(12)13-7-5-5-15(3)9-6-10-16(4,16(13)15)17-11-18/h13-14H,1,5-10H2,2-4H3/t13-,14-,15+,16-/m1/s1";
+    let result = inchi_str.parse::<InChI>();
+    assert_eq!(
+        result,
+        Err(Error::AtomConnectionTokenError(AtomConnectionTokenError::SelfLoopDetected(
+            NonZero::new(12).unwrap()
+        )))
+    );
 }

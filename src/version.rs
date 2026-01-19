@@ -1,14 +1,16 @@
+use core::fmt::Debug;
+
 /// Trait for the different InChI versions.
-pub trait Version: Default {
+pub trait Version: Default + Debug + PartialEq + Eq {
     const VERSION: &'static str;
     const VERSION_PREFIX: &'static str;
 }
 
 /// InChI version 1.07.4
-#[derive(Default)]
+#[derive(Default, Debug, PartialEq, Eq)]
 pub struct StandardVersion1_07_4;
 
-#[derive(Default)]
+#[derive(Default, Debug, PartialEq, Eq)]
 pub struct Version1_07_4;
 
 impl Version for StandardVersion1_07_4 {

@@ -57,15 +57,19 @@ impl ParseLayer for MolecularGraph {
     type Error = crate::errors::Error;
     fn parse(input: &str, context: Self::Context<'_>) -> Result<Self, Self::Error> {
         let vocab_size = context.number_of_elements()?;
+        // TODO! REMOVE HYDROGENS!
         let mut edges: Vec<(usize, usize)> = Vec::from_connection_layer_token(input)?;
         edges.sort_unstable();
 
         let edges: SymmetricCSR2D<CSR2D<usize, usize, usize>> = UndiEdgesBuilder::default()
             .expected_number_of_edges(edges.len())
             .expected_shape(vocab_size)
-            .edges(edges.into_iter())
+            .edges(edges.clone().into_iter())
             .build()
-            .unwrap();
+            .expect(&format!(
+                "Failed to build UndiEdgesBuilder: vocabulary size: {}, edges: {:?}, number of edges: {}",
+                vocab_size, edges, edges.len()
+            ));
 
         Ok(MolecularGraph::from((vocab_size, edges)))
     }

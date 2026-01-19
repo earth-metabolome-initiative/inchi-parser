@@ -2,6 +2,7 @@
 
 use crate::traits::prefix::Prefix;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 /// The reconnected layer of an InChI.
 pub struct ReconnectedLayer;
 

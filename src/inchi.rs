@@ -15,6 +15,7 @@ pub use stereochemistry::StereochemistryLayer;
 
 use crate::version::Version;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 /// The InChI structure
 pub struct InChI<V: Version = crate::version::StandardVersion1_07_4> {
     main_layer: MainLayer,

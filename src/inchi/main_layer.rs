@@ -6,6 +6,8 @@ use molecular_formulas::MolecularFormula;
 
 /// The atom connection layer
 pub type AtomConnectionLayer = Option<Vec<MolecularGraph>>;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 /// The main layer of an InChI.
 pub struct MainLayer {
     chemical_formula: MolecularFormula,
@@ -16,6 +18,7 @@ pub struct MainLayer {
 /// A molecular graph that is undirected.
 pub type MolecularGraph = GenericGraph<usize, SymmetricCSR2D<CSR2D<usize, usize, usize>>>;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct HydrogensSubLayer;
 
 impl Prefix for AtomConnectionLayer {

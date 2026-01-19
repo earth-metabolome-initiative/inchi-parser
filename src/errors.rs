@@ -1,10 +1,13 @@
 //! Module for InChI-related errors.
-use crate::impls::parse_main_layer::connection_layer_base_token_iter::ConnectionLayerToken;
+use crate::impls::parse_main_layer::connection_layer_base_token_iter::{
+    ConnectionLayerSubToken, ConnectionLayerToken,
+};
+use core::num::NonZero;
 use molecular_formulas::errors::Error as MolecularFormulaError;
 
 /// Errors that can occur while parsing or handling InChIs.
-#[derive(thiserror::Error, Debug)]
-pub enum Error {
+#[derive(thiserror::Error, Debug, PartialEq, Eq)]
+pub enum Error<Idx> {
     /// When the ""InChI="" prefix is missing.
     #[error("Missing InChI= prefix")]
     MissingInchiPrefix,
@@ -28,24 +31,24 @@ pub enum Error {
     FormulaAndConnectionLayerMixtureMismatch(usize, usize),
     /// Errors while tokenizing the atom connection layer
     #[error("Atom connection tokenization error: {0}")]
-    AtomConnectionTokenError(#[from] AtomConnectionTokenError),
+    AtomConnectionTokenError(#[from] AtomConnectionTokenError<Idx>),
     /// TODO! TEMPORARY ERROR TO REMOVE!
     #[error("Unimplemented feature: {0}")]
     UnimplementedFeature(&'static str),
 }
 
 /// Errors that can occur while tokenizing the atom connection layer.
-#[derive(thiserror::Error, Debug, Clone, Copy)]
-pub enum AtomConnectionTokenError {
+#[derive(thiserror::Error, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AtomConnectionTokenError<Idx> {
     /// Invalid token encountered
-    #[error("Invalid token encountered: '{0}'")]
-    InvalidToken(char),
+    #[error("Invalid character encountered: '{0}'")]
+    InvalidCharacter(char),
     /// Invalid atom index encountered
-    #[error("Atom index found larger than maximum size of {maximum_size}")]
-    OverflowingAtomIndex {
-        /// The maximum size allowed for atom indices
-        maximum_size: usize,
-    },
+    #[error("Atom index found larger than maximum size of the index type")]
+    IndexOverflow,
+    /// Zero atom index encountered
+    #[error("Atom index cannot be zero")]
+    IndexZero,
     /// The underlying iterator is intermittently empty
     #[error("The underlying iterator is empty")]
     UnderlyingIteratorEmpty,
@@ -53,9 +56,24 @@ pub enum AtomConnectionTokenError {
     #[error("Two atom indices cannot be successive")]
     ConsecutiveAtomIndices,
     /// Illegal consecutive tokens
-    #[error("Illegal consecutive tokens: '{0}' followed by '{1}'")]
-    IllegalConsecutiveTokens(ConnectionLayerToken, ConnectionLayerToken),
+    #[error("Illegal consecutive tokens: '{previous}' followed by '{illegal}'")]
+    IllegalConsecutiveSubTokens {
+        previous: ConnectionLayerSubToken<Idx>,
+        illegal: ConnectionLayerSubToken<Idx>,
+    },
     /// Unexpected end of input
     #[error("Unexpected end of input")]
-    UnexpectedEndOfInput(ConnectionLayerToken),
+    UnexpectedEndOfInput(ConnectionLayerSubToken<Idx>),
+    /// Illegal closing bracket before an opening one
+    #[error("There was a closing bracket before an open one.")]
+    ClosingBracketBeforeOpeningBracket,
+    /// If a comma appears before any edges
+    #[error("Comma before any edge was added")]
+    CommaBeforeAnyEdge,
+    /// Illegal starting token
+    #[error("Illegal starting token: '{0}'")]
+    IllegalStartingToken(ConnectionLayerSubToken<Idx>),
+    /// Self loop detected
+    #[error("Self loop detected:  {0}")]
+    SelfLoopDetected(NonZero<usize>),
 }

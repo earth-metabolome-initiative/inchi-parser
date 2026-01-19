@@ -2,13 +2,16 @@
 
 use crate::traits::prefix::Prefix;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 /// Represents the charge layer of an InChI.
 pub struct ChargeLayer {
     charged_sublayer: Option<ChargeSubLayer>,
     proton_sublayer: Option<ProtonSublayer>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct ChargeSubLayer;
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct ProtonSublayer;
 
 impl Prefix for ChargeSubLayer {

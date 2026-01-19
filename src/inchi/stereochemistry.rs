@@ -1,6 +1,7 @@
 //! Module for the stereochemistry layer of an InChI.
 use crate::traits::prefix::Prefix;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 /// The stereochemistry layer of an InChI.
 pub struct StereochemistryLayer;
 

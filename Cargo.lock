@@ -47,7 +47,7 @@ checksum = "1216c1a577486ca3c8153aa344ce8f985bb99e2e8e7a62f0119ecd924f7499a1"
 [[package]]
 name = "geometric-traits"
 version = "0.1.0"
-source = "git+https://github.com/earth-metabolome-initiative/geometric-traits#b4b55cb80b20cedc1f977f7abe9f45b6852ee502"
+source = "git+https://github.com/earth-metabolome-initiative/geometric-traits#086346c8871a2e6a2da443633e526b9f29279374"
 dependencies = [
  "lender",
  "multi_ranged",
@@ -68,6 +68,7 @@ dependencies = [
  "elements-rs 0.1.0 (git+https://github.com/earth-metabolome-initiative/elements-rs)",
  "geometric-traits",
  "molecular-formulas",
+ "num-traits",
  "thiserror",
 ]
 
@@ -96,7 +97,7 @@ dependencies = [
 [[package]]
 name = "molecular-formulas"
 version = "0.1.0"
-source = "git+https://github.com/earth-metabolome-initiative/molecular-formulas#52de363ae83c7717384ccc8ca153afc007eb7163"
+source = "git+https://github.com/earth-metabolome-initiative/molecular-formulas#d2ba7efc97f7d6f1eb7246e8d32ff67a60854552"
 dependencies = [
  "elements-rs 0.1.0 (git+https://github.com/earth-metabolome-initiative/elements-rs?branch=main)",
  "fmtastic",
@@ -213,18 +214,18 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "2.0.17"
+version = "2.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f63587ca0f12b72a0600bcba1d40081f830876000bb46dd2337a3051618f4fc8"
+checksum = "4288b5bcbc7920c07a1149a35cf9590a2aa808e0bc1eafaade0b80947865fbc4"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "2.0.17"
+version = "2.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ff15c8ecd7de3849db632e14d18d2571fa09dfc5ed93479bc4485c7a517c913"
+checksum = "ebc4ee7f67670e9b64d05fa4253e753e016c6c95ff35b89b7941d6b856dec1d5"
 dependencies = [
  "proc-macro2",
  "quote",
