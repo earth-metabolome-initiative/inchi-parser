@@ -1,8 +1,10 @@
 //! Tests for invalid InChI strings
 use core::num::NonZero;
-use inchi_parser::errors::AtomConnectionTokenError;
-use inchi_parser::errors::Error;
-use inchi_parser::inchi::InChI;
+
+use inchi_parser::{
+    errors::{AtomConnectionTokenError, Error},
+    inchi::InChI,
+};
 
 #[test]
 fn test_missing_inchi_prefix() {

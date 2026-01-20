@@ -97,7 +97,7 @@ dependencies = [
 [[package]]
 name = "molecular-formulas"
 version = "0.1.0"
-source = "git+https://github.com/earth-metabolome-initiative/molecular-formulas#4b2384b4dc7278af03a2108520157f4115912937"
+source = "git+https://github.com/earth-metabolome-initiative/molecular-formulas#313467bbd22822a5527817f8d4569119d47cc2c8"
 dependencies = [
  "elements-rs 0.1.0 (git+https://github.com/earth-metabolome-initiative/elements-rs?branch=main)",
  "fmtastic",

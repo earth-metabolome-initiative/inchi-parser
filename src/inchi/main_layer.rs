@@ -1,8 +1,9 @@
 //! Module for the main layer of an InChI.
 
-use crate::traits::prefix::Prefix;
 use geometric_traits::prelude::*;
 use molecular_formulas::MolecularFormula;
+
+use crate::traits::prefix::Prefix;
 
 /// The atom connection layer
 pub type AtomConnectionLayer = Option<Vec<MolecularGraph<usize>>>;

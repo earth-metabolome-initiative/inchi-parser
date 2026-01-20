@@ -1,4 +1,5 @@
-//! Parses a validated iterator of connection layer tokens into a vector of edges.
+//! Parses a validated iterator of connection layer tokens into a vector of
+//! edges.
 
 use crate::{
     errors::AtomConnectionTokenError,
@@ -12,7 +13,8 @@ pub(super) trait FromConnectionLayer: Sized {
     /// Index type used in the edges.
     type AtomIndex: IndexLike;
 
-    /// Parses a validated iterator of connection layer tokens into a vector of edges.
+    /// Parses a validated iterator of connection layer tokens into a vector of
+    /// edges.
     ///
     /// # Arguments
     ///

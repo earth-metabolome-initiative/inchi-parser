@@ -1,10 +1,16 @@
-use crate::errors::Error;
-use crate::inchi::InChI;
-use crate::inchi::main_layer::{AtomConnectionLayer, MolecularGraph};
-use crate::traits::parse::ParseLayer;
-use crate::version::Version;
 use core::str::FromStr;
+
 use molecular_formulas::MolecularFormula;
+
+use crate::{
+    errors::Error,
+    inchi::{
+        InChI,
+        main_layer::{AtomConnectionLayer, MolecularGraph},
+    },
+    traits::parse::ParseLayer,
+    version::Version,
+};
 
 impl<V: Version> FromStr for InChI<V> {
     type Err = Error<usize>;

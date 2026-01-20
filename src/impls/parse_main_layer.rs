@@ -1,13 +1,16 @@
 pub mod connection_layer_base_token_iter;
-use crate::inchi::main_layer::{AtomConnectionLayer, MolecularGraph};
-use crate::traits::parse::ParseLayer;
-use crate::traits::prefix::Prefix;
+use crate::{
+    inchi::main_layer::{AtomConnectionLayer, MolecularGraph},
+    traits::{parse::ParseLayer, prefix::Prefix},
+};
 mod from_connection_layer_token;
-use crate::errors::Error;
+use std::str::FromStr;
+
 use from_connection_layer_token::FromConnectionLayer;
 use geometric_traits::prelude::*;
 use molecular_formulas::MolecularFormula;
-use std::str::FromStr;
+
+use crate::errors::Error;
 
 impl ParseLayer for MolecularFormula {
     type Context<'a> = ();
@@ -31,7 +34,8 @@ impl ParseLayer for AtomConnectionLayer {
             return Ok(None);
         };
 
-        // Check if the connection layer and the molecular formula have the same number of mixtures
+        // Check if the connection layer and the molecular formula have the same number
+        // of mixtures
         let number_of_mixtures = context.number_of_mixtures();
         let connections_parts = s.matches(";").count() + 1;
         if number_of_mixtures != connections_parts {
@@ -41,8 +45,8 @@ impl ParseLayer for AtomConnectionLayer {
             ));
         }
 
-        // If there are multiple molecules in the molecular formula, we need to split the atom connections layer
-        // at the ';' character
+        // If there are multiple molecules in the molecular formula, we need to split
+        // the atom connections layer at the ';' character
 
         Ok(Some(
             s.split(';')

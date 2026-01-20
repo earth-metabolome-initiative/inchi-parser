@@ -3,8 +3,7 @@ mod sub_tokens;
 pub use sub_tokens::ConnectionLayerSubToken;
 use sub_tokens::ConnectionLayerSubTokenIter;
 
-use crate::errors::AtomConnectionTokenError;
-use crate::traits::IndexLike;
+use crate::{errors::AtomConnectionTokenError, traits::IndexLike};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ConnectionLayerToken<Idx> {
@@ -63,23 +62,24 @@ impl<Idx: IndexLike> Iterator for ConnectionLayerTokenIter<'_, Idx> {
                 let mut branch_tokens = Vec::new();
                 let mut sub_tokens = Vec::new();
                 loop {
-                    let sub_token = match self.next()? {
-                        Ok(sub_token) => sub_token,
-                        Err(e) => match e {
-                            AtomConnectionTokenError::ClosingBracketBeforeOpeningBracket => {
-                                break;
-                            }
-                            AtomConnectionTokenError::CommaBeforeAnyEdge => {
-                                if sub_tokens.is_empty() {
-                                    return Some(Err(e));
+                    let sub_token =
+                        match self.next()? {
+                            Ok(sub_token) => sub_token,
+                            Err(e) => match e {
+                                AtomConnectionTokenError::ClosingBracketBeforeOpeningBracket => {
+                                    break;
                                 }
-                                branch_tokens.push(sub_tokens);
-                                sub_tokens = Vec::new();
-                                continue;
-                            }
-                            _ => return Some(Err(e)),
-                        },
-                    };
+                                AtomConnectionTokenError::CommaBeforeAnyEdge => {
+                                    if sub_tokens.is_empty() {
+                                        return Some(Err(e));
+                                    }
+                                    branch_tokens.push(sub_tokens);
+                                    sub_tokens = Vec::new();
+                                    continue;
+                                }
+                                _ => return Some(Err(e)),
+                            },
+                        };
                     sub_tokens.push(sub_token);
                 }
                 ConnectionLayerToken::Branch(branch_tokens)

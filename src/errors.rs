@@ -1,9 +1,11 @@
 //! Module for InChI-related errors.
+use core::num::NonZero;
+
+use molecular_formulas::errors::Error as MolecularFormulaError;
+
 use crate::impls::parse_main_layer::connection_layer_base_token_iter::{
     ConnectionLayerSubToken, ConnectionLayerToken,
 };
-use core::num::NonZero;
-use molecular_formulas::errors::Error as MolecularFormulaError;
 
 /// Errors that can occur while parsing or handling InChIs.
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
@@ -26,7 +28,8 @@ pub enum Error<Idx> {
     /// Wrong prefix for the layer/sublayer
     #[error("Wrong prefix for the layer")]
     WrongPrefix,
-    /// If the molecular formula contains a mixture but the atom connections layer does not
+    /// If the molecular formula contains a mixture but the atom connections
+    /// layer does not
     #[error("Molecular formula contains {0} mixtures but atom connection has {1}.")]
     FormulaAndConnectionLayerMixtureMismatch(usize, usize),
     /// Errors while tokenizing the atom connection layer

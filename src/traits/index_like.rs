@@ -1,9 +1,10 @@
 //! Submodule defining traits for numbers that can be used as indices.
 
-use core::fmt::Debug;
-use core::fmt::Display;
-use core::ops::Sub;
-use core::str::FromStr;
+use core::{
+    fmt::{Debug, Display},
+    ops::Sub,
+    str::FromStr,
+};
 
 use num_traits::{ConstOne, ConstZero};
 
