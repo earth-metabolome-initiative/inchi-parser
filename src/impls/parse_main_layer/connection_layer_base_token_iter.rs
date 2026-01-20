@@ -1,89 +1,101 @@
-use core::num::NonZero;
-use std::{fmt::Display, iter::Enumerate, str::Chars};
+use core::fmt::Display;
 mod sub_tokens;
 pub use sub_tokens::ConnectionLayerSubToken;
 use sub_tokens::ConnectionLayerSubTokenIter;
 
 use crate::errors::AtomConnectionTokenError;
+use crate::traits::IndexLike;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ConnectionLayerToken {
-    Branch(Box<ConnectionLayerToken>),
-    Atom(NonZero<usize>),
-    List(Vec<ConnectionLayerToken>),
+pub enum ConnectionLayerToken<Idx> {
+    Branch(Vec<Vec<ConnectionLayerToken<Idx>>>),
+    Atom(Idx),
 }
 
-impl Display for ConnectionLayerToken {
+impl<Idx: IndexLike> Display for ConnectionLayerToken<Idx> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Branch(tokens) => {
-                write!(f, "({})", tokens)
-            }
-            Self::Atom(atom_index) => write!(f, "{atom_index}"),
-            Self::List(tokens) => {
-                for (i, token) in tokens.iter().enumerate() {
-                    if i > 0 {
+                let mut first = true;
+                write!(f, "(")?;
+                for subtokens in tokens {
+                    if !first {
                         write!(f, ",")?;
                     }
-                    write!(f, "{token}")?;
+                    let mut last_was_atom = false;
+                    for token in subtokens {
+                        if last_was_atom && matches!(token, ConnectionLayerToken::Atom(_)) {
+                            write!(f, "-")?;
+                        }
+                        last_was_atom = matches!(token, ConnectionLayerToken::Atom(_));
+                        write!(f, "{token}")?;
+                    }
+                    first = false;
                 }
-                Ok(())
+                write!(f, ")")
             }
+            Self::Atom(atom_index) => write!(f, "{atom_index}"),
         }
     }
 }
 
 /// Iterator over the `Token`s found in a provided string.
-pub(super) struct ConnectionLayerTokenIter<'a> {
+pub(super) struct ConnectionLayerTokenIter<'a, Idx> {
     /// The peekable chars iterator
-    tokens: ConnectionLayerSubTokenIter<'a>,
+    tokens: ConnectionLayerSubTokenIter<'a, Idx>,
 }
 
-impl Iterator for ConnectionLayerTokenIter<'_> {
-    type Item = Result<ConnectionLayerToken, crate::errors::AtomConnectionTokenError>;
+impl<Idx: IndexLike> Iterator for ConnectionLayerTokenIter<'_, Idx> {
+    type Item = Result<ConnectionLayerToken<Idx>, AtomConnectionTokenError<Idx>>;
     fn next(&mut self) -> Option<Self::Item> {
-        Some(match self.next()? {
-            '(' => {
-                let Some(branch) = self.next().transpose()? else {
-                    return Some(Err(AtomConnectionTokenError::UnclosedBranch(position)));
-                };
-            }
-            ')' => Ok(ConnectionLayerToken::new_single_char(
-                ConnectionLayerToken::CloseRoundBracket,
-                position,
-            )),
-            '-' => return self.next(), // Skip hyphens
-            ',' => Ok(ConnectionLayerToken::new_single_char(ConnectionLayerToken::Comma, position)),
-            c if c.is_ascii_digit() => {
-                let mut number_str = String::new();
-                number_str.push(c);
-                let mut current_position = position;
-                while let Some(&(char_position, next_char)) = self.chars.peek() {
-                    current_position = char_position;
-                    if next_char.is_ascii_digit() {
-                        number_str.push(next_char);
-                        self.chars.next();
-                    } else {
-                        break;
-                    }
+        let token = match self.tokens.next()? {
+            Ok(sub_token) => sub_token,
+            Err(e) => return Some(Err(e)),
+        };
+        Some(Ok(match token {
+            ConnectionLayerSubToken::Index(atom_index) => ConnectionLayerToken::Atom(atom_index),
+            // The dash can be ignored as we have already validated the illegal
+            // states associated with it in the sub-token iterator.
+            ConnectionLayerSubToken::Dash => return self.next(),
+            ConnectionLayerSubToken::OpenParenthesis => {
+                // We start constructing a branch token, which
+                // might contain one or more sub-tokens.
+                let mut branch_tokens = Vec::new();
+                let mut sub_tokens = Vec::new();
+                loop {
+                    let sub_token = match self.next()? {
+                        Ok(sub_token) => sub_token,
+                        Err(e) => match e {
+                            AtomConnectionTokenError::ClosingBracketBeforeOpeningBracket => {
+                                break;
+                            }
+                            AtomConnectionTokenError::CommaBeforeAnyEdge => {
+                                if sub_tokens.is_empty() {
+                                    return Some(Err(e));
+                                }
+                                branch_tokens.push(sub_tokens);
+                                sub_tokens = Vec::new();
+                                continue;
+                            }
+                            _ => return Some(Err(e)),
+                        },
+                    };
+                    sub_tokens.push(sub_token);
                 }
-                let number = match number_str.parse::<NonZero<usize>>() {
-                    Ok(n) => n,
-                    Err(_) => {
-                        return Some(Err(AtomConnectionTokenError::OverflowingAtomIndex {
-                            maximum_size: usize::MAX,
-                        }));
-                    }
-                };
-                Ok(ConnectionLayerToken::new_atom(number, position, current_position))
+                ConnectionLayerToken::Branch(branch_tokens)
             }
-            _ => Err(AtomConnectionTokenError::InvalidToken(current_char)),
-        })
+            ConnectionLayerSubToken::CloseParenthesis => {
+                return Some(Err(AtomConnectionTokenError::ClosingBracketBeforeOpeningBracket));
+            }
+            ConnectionLayerSubToken::Comma => {
+                return Some(Err(AtomConnectionTokenError::CommaBeforeAnyEdge));
+            }
+        }))
     }
 }
 
-impl<'a> From<&'a str> for ConnectionLayerTokenIter<'a> {
+impl<'a, Idx> From<&'a str> for ConnectionLayerTokenIter<'a, Idx> {
     fn from(value: &'a str) -> Self {
-        Self { chars: value.chars().enumerate().peekable() }
+        Self { tokens: ConnectionLayerSubTokenIter::from(value) }
     }
 }

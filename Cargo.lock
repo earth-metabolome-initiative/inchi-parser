@@ -11,7 +11,7 @@ checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
 [[package]]
 name = "elements-rs"
 version = "0.1.0"
-source = "git+https://github.com/earth-metabolome-initiative/elements-rs?branch=main#757e63005f39be16fc0e9e725566d47fe978939e"
+source = "git+https://github.com/earth-metabolome-initiative/elements-rs?branch=main#117f5bbef635c5326a24649c31aaad13b37ee7b0"
 dependencies = [
  "multi_ranged",
  "serde",
@@ -23,7 +23,7 @@ dependencies = [
 [[package]]
 name = "elements-rs"
 version = "0.1.0"
-source = "git+https://github.com/earth-metabolome-initiative/elements-rs#757e63005f39be16fc0e9e725566d47fe978939e"
+source = "git+https://github.com/earth-metabolome-initiative/elements-rs#117f5bbef635c5326a24649c31aaad13b37ee7b0"
 dependencies = [
  "multi_ranged",
  "serde",
@@ -47,7 +47,7 @@ checksum = "1216c1a577486ca3c8153aa344ce8f985bb99e2e8e7a62f0119ecd924f7499a1"
 [[package]]
 name = "geometric-traits"
 version = "0.1.0"
-source = "git+https://github.com/earth-metabolome-initiative/geometric-traits#086346c8871a2e6a2da443633e526b9f29279374"
+source = "git+https://github.com/earth-metabolome-initiative/geometric-traits#0e60445b1a9394f4fcd2b413991d2a941a06dfc1"
 dependencies = [
  "lender",
  "multi_ranged",
@@ -97,7 +97,7 @@ dependencies = [
 [[package]]
 name = "molecular-formulas"
 version = "0.1.0"
-source = "git+https://github.com/earth-metabolome-initiative/molecular-formulas#d2ba7efc97f7d6f1eb7246e8d32ff67a60854552"
+source = "git+https://github.com/earth-metabolome-initiative/molecular-formulas#4b2384b4dc7278af03a2108520157f4115912937"
 dependencies = [
  "elements-rs 0.1.0 (git+https://github.com/earth-metabolome-initiative/elements-rs?branch=main)",
  "fmtastic",

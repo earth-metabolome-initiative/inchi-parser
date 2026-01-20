@@ -15,8 +15,8 @@ pub enum Error<Idx> {
     #[error("Missing version prefix")]
     MissingVersionPrefix,
     /// When a layer prefix is missing a forward slash.
-    #[error("Missing '/'")]
-    MissingForwardSlash,
+    #[error("Missing '/': {0}")]
+    MissingForwardSlash(&'static str),
     /// Molecular formula errors
     #[error("Molecular formula error")]
     MolecularFormula(#[from] MolecularFormulaError),
@@ -58,7 +58,9 @@ pub enum AtomConnectionTokenError<Idx> {
     /// Illegal consecutive tokens
     #[error("Illegal consecutive tokens: '{previous}' followed by '{illegal}'")]
     IllegalConsecutiveSubTokens {
+        /// The previous token
         previous: ConnectionLayerSubToken<Idx>,
+        /// The illegal token
         illegal: ConnectionLayerSubToken<Idx>,
     },
     /// Unexpected end of input
@@ -75,5 +77,5 @@ pub enum AtomConnectionTokenError<Idx> {
     IllegalStartingToken(ConnectionLayerSubToken<Idx>),
     /// Self loop detected
     #[error("Self loop detected:  {0}")]
-    SelfLoopDetected(NonZero<usize>),
+    SelfLoopDetected(Idx),
 }

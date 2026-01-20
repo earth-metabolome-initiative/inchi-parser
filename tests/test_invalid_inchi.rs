@@ -22,14 +22,14 @@ fn test_missing_version_prefix() {
 fn test_missing_forward_slash() {
     let inchi_str = "InChI=1SC2H6O/c1-2-3/h3H,2H2,1H3"; // Missing '/' after version
     let result = inchi_str.parse::<InChI>();
-    assert!(matches!(result, Err(Error::MissingForwardSlash)));
+    assert!(matches!(result, Err(Error::MissingForwardSlash(_))));
 }
 
 #[test]
 fn test_missing_forward_slash_in_layers() {
     let inchi_str = "InChI=1S/C2H6O"; // Missing '/' before layers
     let result = inchi_str.parse::<InChI>();
-    assert!(matches!(result, Err(Error::MissingForwardSlash)));
+    assert!(matches!(result, Err(Error::MissingForwardSlash(_))));
 }
 
 #[test]
@@ -57,9 +57,7 @@ fn test_self_loop_comma() {
     let result = inchi_str.parse::<InChI>();
     assert_eq!(
         result,
-        Err(Error::AtomConnectionTokenError(AtomConnectionTokenError::SelfLoopDetected(
-            NonZero::new(16).unwrap()
-        )))
+        Err(Error::AtomConnectionTokenError(AtomConnectionTokenError::SelfLoopDetected(16)))
     );
 }
 
@@ -69,9 +67,7 @@ fn test_self_loop_dash() {
     let result = inchi_str.parse::<InChI>();
     assert_eq!(
         result,
-        Err(Error::AtomConnectionTokenError(AtomConnectionTokenError::SelfLoopDetected(
-            NonZero::new(5).unwrap()
-        )))
+        Err(Error::AtomConnectionTokenError(AtomConnectionTokenError::SelfLoopDetected(5)))
     );
 }
 
@@ -81,8 +77,6 @@ fn test_self_loop_parenthesis() {
     let result = inchi_str.parse::<InChI>();
     assert_eq!(
         result,
-        Err(Error::AtomConnectionTokenError(AtomConnectionTokenError::SelfLoopDetected(
-            NonZero::new(12).unwrap()
-        )))
+        Err(Error::AtomConnectionTokenError(AtomConnectionTokenError::SelfLoopDetected(12)))
     );
 }

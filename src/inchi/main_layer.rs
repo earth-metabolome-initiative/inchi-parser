@@ -5,7 +5,7 @@ use geometric_traits::prelude::*;
 use molecular_formulas::MolecularFormula;
 
 /// The atom connection layer
-pub type AtomConnectionLayer = Option<Vec<MolecularGraph>>;
+pub type AtomConnectionLayer = Option<Vec<MolecularGraph<usize>>>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// The main layer of an InChI.
@@ -16,7 +16,7 @@ pub struct MainLayer {
 }
 
 /// A molecular graph that is undirected.
-pub type MolecularGraph = GenericGraph<usize, SymmetricCSR2D<CSR2D<usize, usize, usize>>>;
+pub type MolecularGraph<Idx> = GenericGraph<Idx, SymmetricCSR2D<CSR2D<Idx, Idx, Idx>>>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct HydrogensSubLayer;

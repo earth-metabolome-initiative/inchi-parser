@@ -3,6 +3,7 @@ use crate::inchi::main_layer::{AtomConnectionLayer, MolecularGraph};
 use crate::traits::parse::ParseLayer;
 use crate::traits::prefix::Prefix;
 mod from_connection_layer_token;
+use crate::errors::Error;
 use from_connection_layer_token::FromConnectionLayer;
 use geometric_traits::prelude::*;
 use molecular_formulas::MolecularFormula;
@@ -10,7 +11,7 @@ use std::str::FromStr;
 
 impl ParseLayer for MolecularFormula {
     type Context<'a> = ();
-    type Error = crate::errors::Error;
+    type Error = Error<usize>;
     fn parse(input: &str, _context: Self::Context<'_>) -> Result<Self, Self::Error> {
         // parse the molecular formula
         let molecular_formula = MolecularFormula::from_str(input)?;
@@ -24,7 +25,7 @@ impl ParseLayer for MolecularFormula {
 
 impl ParseLayer for AtomConnectionLayer {
     type Context<'a> = &'a MolecularFormula;
-    type Error = crate::errors::Error;
+    type Error = Error<usize>;
     fn parse(input: &str, context: Self::Context<'_>) -> Result<Self, Self::Error> {
         let Some(s) = input.strip_prefix(Self::PREFIX) else {
             return Ok(None);
@@ -52,9 +53,9 @@ impl ParseLayer for AtomConnectionLayer {
     }
 }
 
-impl ParseLayer for MolecularGraph {
+impl ParseLayer for MolecularGraph<usize> {
     type Context<'a> = &'a MolecularFormula;
-    type Error = crate::errors::Error;
+    type Error = crate::errors::Error<usize>;
     fn parse(input: &str, context: Self::Context<'_>) -> Result<Self, Self::Error> {
         let vocab_size = context.number_of_elements()?;
         // TODO! REMOVE HYDROGENS!

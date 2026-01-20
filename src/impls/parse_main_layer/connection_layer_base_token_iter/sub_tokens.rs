@@ -1,11 +1,7 @@
 //! Submodule with the elemental tokens compositing a connection layer base token.
 
 use crate::{errors::AtomConnectionTokenError, traits::IndexLike};
-use core::{
-    fmt::Display,
-    str::{Chars, FromStr},
-};
-use num_traits::ConstZero;
+use core::{fmt::Display, str::Chars};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 /// Enum representing the elemental tokens that compose a connection layer base token.
@@ -67,10 +63,7 @@ impl<'a, Idx: IndexLike> ConnectionLayerSubTokenIter<'a, Idx> {
     /// # Errors
     ///
     /// * If the parsed digit overflows the `Idx` type.
-    pub fn consume_digit(&mut self) -> Result<Idx, AtomConnectionTokenError<Idx>>
-    where
-        Idx: FromStr,
-    {
+    pub fn consume_digit(&mut self) -> Result<Idx, AtomConnectionTokenError<Idx>> {
         let mut number_str = String::new();
         while let Some(&next_char) = self.chars.peek() {
             if next_char.is_ascii_digit() {
@@ -118,7 +111,10 @@ impl<Idx: IndexLike> Iterator for ConnectionLayerSubTokenIter<'_, Idx> {
             }
             Some(false) => {
                 // If the next token is not a digit, we are in an error state.
-                let next_token = self.next().transpose()?;
+                let next_token = match self.next()? {
+                    Ok(next_token) => next_token,
+                    Err(e) => return Some(Err(e)),
+                };
                 Err(AtomConnectionTokenError::IllegalConsecutiveSubTokens {
                     previous: token.into(),
                     illegal: next_token.into(),
