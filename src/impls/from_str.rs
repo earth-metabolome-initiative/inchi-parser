@@ -1,6 +1,6 @@
 use core::str::FromStr;
 
-use molecular_formulas::MolecularFormula;
+use molecular_formulas::{InChIFormula, MolecularFormula};
 
 use crate::{
     errors::Error,
@@ -43,7 +43,7 @@ impl<V: Version> FromStr for InChI<V> {
         };
 
         // Then we parse the molecular formula layer
-        let chemical_formula = MolecularFormula::parse(mf_layer, ())?;
+        let chemical_formula = InChIFormula::parse(mf_layer, ())?;
 
         let Some((next_layer, rest)) = rest.split_once('/') else {
             // The hydrogen layer

@@ -1,7 +1,8 @@
 //! Module for InChI-related errors.
 use core::num::NonZero;
 
-use molecular_formulas::errors::Error as MolecularFormulaError;
+use molecular_formulas::errors::NumericError;
+use molecular_formulas::errors::ParserError;
 
 use crate::impls::parse_main_layer::connection_layer_base_token_iter::{
     ConnectionLayerSubToken, ConnectionLayerToken,
@@ -11,7 +12,7 @@ use crate::impls::parse_main_layer::connection_layer_base_token_iter::{
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
 pub enum Error<Idx> {
     /// When the ""InChI="" prefix is missing.
-    #[error("Missing InChI= prefix")]
+    #[error("Missing 'InChI=' prefix")]
     MissingInchiPrefix,
     /// When the version prefix is missing.
     #[error("Missing version prefix")]
@@ -19,9 +20,12 @@ pub enum Error<Idx> {
     /// When a layer prefix is missing a forward slash.
     #[error("Missing '/': {0}")]
     MissingForwardSlash(&'static str),
-    /// Molecular formula errors
-    #[error("Molecular formula error")]
-    MolecularFormula(#[from] MolecularFormulaError),
+    /// Molecular formula parse errors
+    #[error("Molecular formula parsing error")]
+    MolecularFormulaParserError(#[from] ParserError),
+    ///Molecular formula numeric errors
+    #[error("Molecular formula numeric error")]
+    MolecularFormulaNumericError(#[from] NumericError),
     /// Is not Hill sorted error
     #[error("Molecular formula is not Hill sorted")]
     NotHillSorted,

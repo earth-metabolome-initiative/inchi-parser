@@ -9,11 +9,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
 
 [[package]]
-name = "elements-rs"
-version = "0.1.0"
-source = "git+https://github.com/earth-metabolome-initiative/elements-rs?branch=main#117f5bbef635c5326a24649c31aaad13b37ee7b0"
+name = "elements_rs"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "557e4cb8317539fd4cf26dcb81ef354dd2e1de3d3ce79ad0d6fdb289edfa02e1"
 dependencies = [
- "multi_ranged",
  "serde",
  "strum",
  "strum_macros",
@@ -21,11 +21,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "elements-rs"
-version = "0.1.0"
-source = "git+https://github.com/earth-metabolome-initiative/elements-rs#117f5bbef635c5326a24649c31aaad13b37ee7b0"
+name = "elements_rs"
+version = "0.1.3"
+source = "git+https://github.com/earth-metabolome-initiative/elements-rs#5c45f1d44270893f29c8105ef50c745589aa0827"
 dependencies = [
- "multi_ranged",
  "serde",
  "strum",
  "strum_macros",
@@ -37,12 +36,6 @@ name = "fallible-iterator"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2acce4a10f12dc2fb14a218589d4f1f62ef011b2d0cc4b3cb1bba8e94da14649"
-
-[[package]]
-name = "fmtastic"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1216c1a577486ca3c8153aa344ce8f985bb99e2e8e7a62f0119ecd924f7499a1"
 
 [[package]]
 name = "geometric-traits"
@@ -65,7 +58,7 @@ checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 name = "inchi-parser"
 version = "0.1.0"
 dependencies = [
- "elements-rs 0.1.0 (git+https://github.com/earth-metabolome-initiative/elements-rs)",
+ "elements_rs 0.1.3 (git+https://github.com/earth-metabolome-initiative/elements-rs)",
  "geometric-traits",
  "molecular-formulas",
  "num-traits",
@@ -97,13 +90,12 @@ dependencies = [
 [[package]]
 name = "molecular-formulas"
 version = "0.1.0"
-source = "git+https://github.com/earth-metabolome-initiative/molecular-formulas#313467bbd22822a5527817f8d4569119d47cc2c8"
+source = "git+https://github.com/earth-metabolome-initiative/molecular-formulas#04e08222835c997da771b66650403bef7c6e0af2"
 dependencies = [
- "elements-rs 0.1.0 (git+https://github.com/earth-metabolome-initiative/elements-rs?branch=main)",
- "fmtastic",
- "multi_ranged",
+ "elements_rs 0.1.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits",
  "serde",
+ "thiserror",
 ]
 
 [[package]]
@@ -128,18 +120,18 @@ dependencies = [
 
 [[package]]
 name = "proc-macro2"
-version = "1.0.105"
+version = "1.0.106"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "535d180e0ecab6268a3e718bb9fd44db66bbbc256257165fc699dadf70d16fe7"
+checksum = "8fd00f0bb2e90d81d1044c2b32617f68fcb9fa3bb7640c23e9c748e53fb30934"
 dependencies = [
  "unicode-ident",
 ]
 
 [[package]]
 name = "quote"
-version = "1.0.43"
+version = "1.0.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc74d9a594b72ae6656596548f56f667211f8a97b3d4c3d467150794690dc40a"
+checksum = "21b2ebcf727b7760c461f091f9f0f539b77b8e87f2fd88131e7f1b433b3cece4"
 dependencies = [
  "proc-macro2",
 ]
