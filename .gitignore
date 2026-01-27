@@ -1,1 +1,3 @@
 /target
+tests/CID-InChI-Key.gz
+tests/sorted_pubchem_inchi.tsv.gz
