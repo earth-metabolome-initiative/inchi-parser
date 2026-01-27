@@ -24,5 +24,5 @@ pub struct InChI<V: Version = crate::version::StandardVersion1_07_4> {
     isotope: IsotopeLayer,
     fixed_hydrogen: FixedHydrogenLayer,
     reconnected: ReconnectedLayer,
-    _version: std::marker::PhantomData<V>,
+    _version: core::marker::PhantomData<V>,
 }

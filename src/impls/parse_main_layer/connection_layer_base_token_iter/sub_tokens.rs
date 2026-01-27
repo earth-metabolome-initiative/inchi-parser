@@ -25,7 +25,7 @@ impl<Idx> Display for ConnectionLayerSubToken<Idx>
 where
     Idx: Display,
 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             ConnectionLayerSubToken::OpenParenthesis => write!(f, "("),
             ConnectionLayerSubToken::CloseParenthesis => write!(f, ")"),
@@ -39,14 +39,14 @@ where
 /// Iterator over the `Token`s found in a provided string.
 pub(super) struct ConnectionLayerSubTokenIter<'a, Idx> {
     /// The peekable chars iterator
-    chars: std::iter::Peekable<Chars<'a>>,
+    chars: core::iter::Peekable<Chars<'a>>,
     /// Phantom data for the index type
-    _phantom: std::marker::PhantomData<Idx>,
+    _phantom: core::marker::PhantomData<Idx>,
 }
 
 impl<'a, Idx> From<&'a str> for ConnectionLayerSubTokenIter<'a, Idx> {
     fn from(s: &'a str) -> Self {
-        Self { chars: s.chars().peekable(), _phantom: std::marker::PhantomData }
+        Self { chars: s.chars().peekable(), _phantom: core::marker::PhantomData }
     }
 }
 
