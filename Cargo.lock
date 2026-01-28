@@ -21,17 +21,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "elements_rs"
-version = "0.1.4"
-source = "git+https://github.com/earth-metabolome-initiative/elements-rs#1bb68671bf322cfe19c8e6ee87b87891bf9539e8"
-dependencies = [
- "serde",
- "strum",
- "strum_macros",
- "thiserror",
-]
-
-[[package]]
 name = "fallible-iterator"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -58,7 +47,7 @@ checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 name = "inchi-parser"
 version = "0.1.0"
 dependencies = [
- "elements_rs 0.1.4 (git+https://github.com/earth-metabolome-initiative/elements-rs)",
+ "elements_rs",
  "geometric-traits",
  "molecular-formulas",
  "num-traits",
@@ -93,7 +82,7 @@ version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8c4170133fb3b8efa05fe4616281a9249d5d4a84d4d6d5bd3c59727d26ce8d4"
 dependencies = [
- "elements_rs 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "elements_rs",
  "num-traits",
  "serde",
  "thiserror",
