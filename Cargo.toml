@@ -10,7 +10,7 @@ readme = "README.md"
 
 [dependencies]
 geometric-traits = { git = "https://github.com/earth-metabolome-initiative/geometric-traits", version = "0.1.0" }
-molecular-formulas = { git = "https://github.com/earth-metabolome-initiative/molecular-formulas", version = "0.1.0" }
+molecular-formulas = "0.1.2"
 thiserror = "2.0"
 num-traits = "0.2"
 elements_rs = { git = "https://github.com/earth-metabolome-initiative/elements-rs", version = "0.1.3" }
