@@ -5,6 +5,7 @@ use inchi_parser::{
     errors::{AtomConnectionTokenError, Error},
     inchi::InChI,
 };
+use molecular_formulas::errors::ParserError;
 
 #[test]
 fn test_missing_inchi_prefix() {
@@ -38,7 +39,7 @@ fn test_missing_forward_slash_in_layers() {
 fn test_not_hill_sorted() {
     let inchi_str = "InChI=1S/C2OH6/"; // Missing '/' before layers
     let result = inchi_str.parse::<InChI>();
-    assert!(matches!(result, Err(Error::NotHillSorted)));
+    assert!(matches!(result, Err(Error::MolecularFormulaParserError(ParserError::NotHillOrdered))));
 }
 
 #[test]
