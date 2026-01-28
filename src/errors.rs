@@ -2,8 +2,10 @@
 
 use molecular_formulas::errors::ParserError;
 
-use crate::impls::main_layer::atom_connection_layer::connection_layer_base_token_iter::ConnectionLayerSubToken;
-use crate::impls::main_layer::hydrogen_layer::tokens::HydogenLayerTokens;
+use crate::impls::main_layer::{
+    atom_connection_layer::connection_layer_base_token_iter::ConnectionLayerSubToken,
+    hydrogen_layer::tokens::HydogenLayerTokens,
+};
 
 /// Errors that can occur while parsing or handling InChIs.
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]

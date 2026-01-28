@@ -1,7 +1,7 @@
-use crate::errors::HydrogenLayerTokenError;
-use crate::traits::IndexLike;
 use alloc::string::String;
 use core::{fmt::Display, str::Chars};
+
+use crate::{errors::HydrogenLayerTokenError, traits::IndexLike};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 /// Enum representing the elemental tokens that compose a hydrogen layer.
