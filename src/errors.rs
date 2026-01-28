@@ -1,12 +1,8 @@
 //! Module for InChI-related errors.
-use core::num::NonZero;
 
-use molecular_formulas::errors::NumericError;
 use molecular_formulas::errors::ParserError;
 
-use crate::impls::parse_main_layer::connection_layer_base_token_iter::{
-    ConnectionLayerSubToken, ConnectionLayerToken,
-};
+use crate::impls::main_layer::atom_connection_layer::connection_layer_base_token_iter::ConnectionLayerSubToken;
 
 /// Errors that can occur while parsing or handling InChIs.
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
@@ -23,12 +19,6 @@ pub enum Error<Idx> {
     /// Molecular formula parse errors
     #[error("Molecular formula parsing error")]
     MolecularFormulaParserError(#[from] ParserError),
-    ///Molecular formula numeric errors
-    #[error("Molecular formula numeric error")]
-    MolecularFormulaNumericError(#[from] NumericError),
-    /// Is not Hill sorted error
-    #[error("Molecular formula is not Hill sorted")]
-    NotHillSorted,
     /// Wrong prefix for the layer/sublayer
     #[error("Wrong prefix for the layer")]
     WrongPrefix,
@@ -85,4 +75,14 @@ pub enum AtomConnectionTokenError<Idx> {
     /// Self loop detected
     #[error("Self loop detected:  {0}")]
     SelfLoopDetected(Idx),
+}
+
+#[derive(thiserror::Error, Debug, Clone, Copy, PartialEq, Eq)]
+pub enum HydrogenLayerTokenError {
+    /// Invalid atom index encountered
+    #[error("Atom index found larger than maximum size of the index type")]
+    IndexOverflow,
+    /// Zero atom index encountered
+    #[error("Atom index cannot be zero")]
+    IndexZero,
 }
