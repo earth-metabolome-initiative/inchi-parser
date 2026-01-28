@@ -1,6 +1,7 @@
 //! Submodule with the elemental tokens compositing a connection layer base
 //! token.
 
+use alloc::string::String;
 use core::{fmt::Display, str::Chars};
 
 use crate::{errors::AtomConnectionTokenError, traits::IndexLike};

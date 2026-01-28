@@ -1,5 +1,7 @@
 use core::fmt::Display;
 mod sub_tokens;
+use alloc::vec::Vec;
+
 pub use sub_tokens::ConnectionLayerSubToken;
 use sub_tokens::ConnectionLayerSubTokenIter;
 

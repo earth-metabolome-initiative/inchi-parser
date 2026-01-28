@@ -3,12 +3,12 @@ use crate::traits::prefix::Prefix;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// The stereochemistry layer of an InChI.
-pub struct StereochemistryLayer;
+pub(crate) struct StereochemistryLayer;
 
-struct DoubleBondSublayer;
-struct TetrahedralSublayer;
-struct AlleneSublayer;
-struct StereoChemistryInformationSublayer;
+pub(crate) struct DoubleBondSublayer;
+pub(crate) struct TetrahedralSublayer;
+pub(crate) struct AlleneSublayer;
+pub(crate) struct StereoChemistryInformationSublayer;
 
 impl Prefix for DoubleBondSublayer {
     const PREFIX: char = 'b';
