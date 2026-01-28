@@ -1,25 +1,25 @@
 //! Module for the InChI structure and its layers.
 
-pub mod charge;
+pub mod charge_layer;
 pub mod fixed_hydrogen;
-pub mod isotope;
+pub mod isotope_layer;
 pub mod main_layer;
-pub mod reconnected;
-pub mod stereochemistry;
-pub use charge::ChargeLayer;
+pub mod proton_layer;
+pub mod reconnected_layer;
+pub mod stereochemistry_layer;
 pub use fixed_hydrogen::FixedHydrogenLayer;
-pub use isotope::IsotopeLayer;
+pub use isotope_layer::IsotopeLayer;
 pub use main_layer::MainLayer;
-pub use reconnected::ReconnectedLayer;
-pub use stereochemistry::StereochemistryLayer;
+pub use reconnected_layer::ReconnectedLayer;
+pub(crate) use stereochemistry_layer::StereochemistryLayer;
 
-use crate::version::Version;
+use crate::{inchi::charge_layer::ChargeSubLayer, version::Version};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// The InChI structure
 pub struct InChI<V: Version = crate::version::StandardVersion1_07_4> {
     main_layer: MainLayer,
-    charge: ChargeLayer,
+    charge: ChargeSubLayer,
     stereochemistry: StereochemistryLayer,
     isotope: IsotopeLayer,
     fixed_hydrogen: FixedHydrogenLayer,

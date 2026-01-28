@@ -1,2 +1,4 @@
 mod from_str;
-pub(crate) mod parse_main_layer;
+pub(crate) mod main_layer;
+pub(crate) mod proton_layer;
+pub(crate) mod stereochemistry_layer;

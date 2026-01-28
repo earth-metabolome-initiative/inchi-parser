@@ -1,31 +1,46 @@
 //! Module for the main layer of an InChI.
 
-use geometric_traits::prelude::*;
+mod atom_connection_layer;
+pub(crate) use atom_connection_layer::{AtomConnectionLayer, MolecularGraph};
+mod hydrogen_layer;
+use core::str::FromStr;
+
+pub(crate) use hydrogen_layer::HydrogensSubLayer;
 use molecular_formulas::InChIFormula;
 
-use crate::traits::prefix::Prefix;
-
-/// A molecular graph that is undirected.
-pub type MolecularGraph<Idx> = GenericGraph<Idx, SymmetricCSR2D<CSR2D<Idx, Idx, Idx>>>;
-
-/// The atom connection layer
-pub type AtomConnectionLayer = Option<Vec<MolecularGraph<usize>>>;
+use crate::traits::parse::{ConsumeStr, PrefixFromStrWithContext};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// The main layer of an InChI.
 pub struct MainLayer {
     chemical_formula: InChIFormula,
-    atom_connections: AtomConnectionLayer,
-    hydrogens: HydrogensSubLayer,
+    atom_connections: Option<AtomConnectionLayer>,
+    hydrogens: Option<HydrogensSubLayer>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) struct HydrogensSubLayer;
+impl ConsumeStr for MainLayer {
+    fn consume_str(input: &str) -> Result<(Self, &str), crate::errors::Error<usize>> {
+        // Then we parse the molecular formula layer
+        // we strip everything until the next '/'
+        let (chemical_formula_layer, mut layer_remainder) =
+            input.split_once('/').unwrap_or((input, ""));
 
-impl Prefix for AtomConnectionLayer {
-    const PREFIX: char = 'c';
-}
+        // Then we parse the molecular formula layer
+        let chemical_formula = InChIFormula::from_str(chemical_formula_layer)?;
 
-impl Prefix for HydrogensSubLayer {
-    const PREFIX: char = 'h';
+        let atom_connection_layer =
+            AtomConnectionLayer::try_build_layer(&mut layer_remainder, &chemical_formula)?;
+
+        let hydrogen_layer =
+            HydrogensSubLayer::try_build_layer(&mut layer_remainder, &chemical_formula)?;
+
+        Ok((
+            MainLayer {
+                chemical_formula: chemical_formula,
+                atom_connections: atom_connection_layer,
+                hydrogens: hydrogen_layer,
+            },
+            layer_remainder,
+        ))
+    }
 }

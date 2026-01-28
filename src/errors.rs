@@ -3,6 +3,7 @@
 use molecular_formulas::errors::ParserError;
 
 use crate::impls::main_layer::atom_connection_layer::connection_layer_base_token_iter::ConnectionLayerSubToken;
+use crate::impls::main_layer::hydrogen_layer::tokens::HydogenLayerTokens;
 
 /// Errors that can occur while parsing or handling InChIs.
 #[derive(thiserror::Error, Debug, PartialEq, Eq)]
@@ -78,11 +79,26 @@ pub enum AtomConnectionTokenError<Idx> {
 }
 
 #[derive(thiserror::Error, Debug, Clone, Copy, PartialEq, Eq)]
-pub enum HydrogenLayerTokenError {
+/// Errors that can occur while tokenizing the hydrogen layer.
+pub enum HydrogenLayerTokenError<Idx> {
     /// Invalid atom index encountered
     #[error("Atom index found larger than maximum size of the index type")]
     IndexOverflow,
     /// Zero atom index encountered
     #[error("Atom index cannot be zero")]
     IndexZero,
+    /// Invalid token encountered
+    #[error("Invalid character encountered: '{0}'")]
+    InvalidCharacter(char),
+    /// Illegal consecutive tokens
+    #[error("Illegal consecutive tokens: '{previous}' followed by '{illegal}'")]
+    IllegalConsecutiveSubTokens {
+        /// The previous token
+        previous: HydogenLayerTokens<Idx>,
+        /// The illegal token
+        illegal: HydogenLayerTokens<Idx>,
+    },
+    /// Unexpected end of input
+    #[error("Unexpected end of input")]
+    UnexpectedEndOfInput(HydogenLayerTokens<Idx>),
 }

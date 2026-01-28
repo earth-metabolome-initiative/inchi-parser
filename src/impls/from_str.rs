@@ -1,14 +1,9 @@
 use core::str::FromStr;
 
-use molecular_formulas::{InChIFormula, MolecularFormula};
-
 use crate::{
     errors::Error,
-    inchi::{
-        InChI,
-        main_layer::{AtomConnectionLayer, MolecularGraph},
-    },
-    traits::parse::ParseLayer,
+    inchi::{InChI, MainLayer, proton_layer::ProtonSublayer},
+    traits::{parse::ConsumeStr, prefix::Prefix},
     version::Version,
 };
 
@@ -33,29 +28,18 @@ impl<V: Version> FromStr for InChI<V> {
             return Err(Self::Err::MissingForwardSlash("Missing chemical formula forward slash"));
         };
 
-        // Then we parse the molecular formula layer
-        // we strip everything until the next '/'
-        let Some((mf_layer, rest)) = s.split_once('/') else {
-            // The hydrogen layer
-            return Err(crate::errors::Error::UnimplementedFeature(
-                "Hydrogen layer parsing not implemented",
-            ));
-        };
+        // if the next token is a lowercase 'p' then this means that we don't have
+        // a main layer and we skip it
+        let (mut proton_sublayer, main_layer): (Option<ProtonSublayer>, Option<MainLayer>) =
+            if s.starts_with(ProtonSublayer::PREFIX) {
+                let proton_sublayer = ProtonSublayer::from_str(s)?;
+                (Some(proton_sublayer), None)
+            } else {
+                let (main_layer, mut layer_remainder) = MainLayer::consume_str(s)?;
+                (None, Some(main_layer))
+            };
 
-        // Then we parse the molecular formula layer
-        let chemical_formula = InChIFormula::parse(mf_layer, ())?;
-
-        let Some((next_layer, rest)) = rest.split_once('/') else {
-            // The hydrogen layer
-            return Err(crate::errors::Error::UnimplementedFeature(
-                "Hydrogen layer parsing not implemented",
-            ));
-        };
-
-        // The atom connection layer
-        let undi_graphs = <AtomConnectionLayer>::parse(next_layer, &chemical_formula)?;
-
-        // The hydrogen layer
-        Err(crate::errors::Error::UnimplementedFeature("Hydrogen layer parsing not implemented"))
+        // TODO: Remove this once we are done with the parser
+        Err(Error::UnimplementedFeature("InChI parser is not finished yet !"))
     }
 }
