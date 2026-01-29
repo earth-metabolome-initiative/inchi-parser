@@ -3,7 +3,7 @@
 use molecular_formulas::errors::ParserError;
 
 use crate::impls::main_layer::{
-    atom_connection_layer::connection_layer_base_token_iter::ConnectionLayerSubToken,
+    atom_connection_layer::connection_layer_token_iter::ConnectionLayerSubToken,
     hydrogen_layer::tokens::HydogenLayerTokens,
 };
 
