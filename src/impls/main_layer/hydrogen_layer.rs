@@ -1,5 +1,5 @@
 use molecular_formulas::InChIFormula;
-pub(crate) mod tokens;
+pub(crate) mod sub_tokens;
 
 use crate::{
     errors::Error,

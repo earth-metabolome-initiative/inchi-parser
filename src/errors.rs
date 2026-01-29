@@ -4,7 +4,7 @@ use molecular_formulas::errors::ParserError;
 
 use crate::impls::main_layer::{
     atom_connection_layer::connection_layer_token_iter::ConnectionLayerSubToken,
-    hydrogen_layer::tokens::HydogenLayerTokens,
+    hydrogen_layer::sub_tokens::HydogenLayerSubTokens,
 };
 
 /// Errors that can occur while parsing or handling InChIs.
@@ -96,11 +96,11 @@ pub enum HydrogenLayerTokenError<Idx> {
     #[error("Illegal consecutive tokens: '{previous}' followed by '{illegal}'")]
     IllegalConsecutiveSubTokens {
         /// The previous token
-        previous: HydogenLayerTokens<Idx>,
+        previous: HydogenLayerSubTokens<Idx>,
         /// The illegal token
-        illegal: HydogenLayerTokens<Idx>,
+        illegal: HydogenLayerSubTokens<Idx>,
     },
     /// Unexpected end of input
     #[error("Unexpected end of input")]
-    UnexpectedEndOfInput(HydogenLayerTokens<Idx>),
+    UnexpectedEndOfInput(HydogenLayerSubTokens<Idx>),
 }

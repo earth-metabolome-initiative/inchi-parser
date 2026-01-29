@@ -5,7 +5,7 @@ use crate::{errors::HydrogenLayerTokenError, traits::IndexLike};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 /// Enum representing the elemental tokens that compose a hydrogen layer.
-pub enum HydogenLayerTokens<Idx> {
+pub enum HydogenLayerSubTokens<Idx> {
     /// Index token.
     Index(Idx),
     /// Dash token: `-`.
@@ -20,15 +20,15 @@ pub enum HydogenLayerTokens<Idx> {
     CloseParenthesis,
 }
 
-impl<Idx: Display> Display for HydogenLayerTokens<Idx> {
+impl<Idx: Display> Display for HydogenLayerSubTokens<Idx> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            HydogenLayerTokens::OpenParenthesis => write!(f, "("),
-            HydogenLayerTokens::CloseParenthesis => write!(f, ")"),
-            HydogenLayerTokens::Comma => write!(f, ","),
-            HydogenLayerTokens::Dash => write!(f, "-"),
-            HydogenLayerTokens::Index(idx) => write!(f, "{}", idx),
-            HydogenLayerTokens::H => write!(f, "H"),
+            HydogenLayerSubTokens::OpenParenthesis => write!(f, "("),
+            HydogenLayerSubTokens::CloseParenthesis => write!(f, ")"),
+            HydogenLayerSubTokens::Comma => write!(f, ","),
+            HydogenLayerSubTokens::Dash => write!(f, "-"),
+            HydogenLayerSubTokens::Index(idx) => write!(f, "{}", idx),
+            HydogenLayerSubTokens::H => write!(f, "H"),
         }
     }
 }
@@ -68,11 +68,11 @@ impl<'a, Idx: IndexLike> HydrogenLayerTokenIter<'a, Idx> {
             }
         }
         let Ok(number) = number_str.parse::<Idx>() else {
-            return Err(HydrogenLayerTokenError::IndexOverflow);
+            return Err(HydrogenLayerTokenError::<Idx>::IndexOverflow);
         };
 
         if number == Idx::ZERO {
-            return Err(HydrogenLayerTokenError::IndexZero);
+            return Err(HydrogenLayerTokenError::<Idx>::IndexOverflow);
         }
 
         Ok(number)
@@ -80,20 +80,20 @@ impl<'a, Idx: IndexLike> HydrogenLayerTokenIter<'a, Idx> {
 }
 
 impl<Idx: IndexLike> Iterator for HydrogenLayerTokenIter<'_, Idx> {
-    type Item = Result<HydogenLayerTokens<Idx>, HydrogenLayerTokenError<Idx>>;
+    type Item = Result<HydogenLayerSubTokens<Idx>, HydrogenLayerTokenError<Idx>>;
     fn next(&mut self) -> Option<Self::Item> {
         if self.peek_is_digit()? {
             return match self.consume_digit() {
-                Ok(idx) => Some(Ok(HydogenLayerTokens::Index(idx))),
+                Ok(idx) => Some(Ok(HydogenLayerSubTokens::Index(idx))),
                 Err(e) => Some(Err(e)),
             };
         }
         let token = match self.chars.next()? {
-            '(' => HydogenLayerTokens::OpenParenthesis,
-            ')' => HydogenLayerTokens::CloseParenthesis,
-            ',' => HydogenLayerTokens::Comma,
-            '-' => HydogenLayerTokens::Dash,
-            'H' => HydogenLayerTokens::H,
+            '(' => HydogenLayerSubTokens::OpenParenthesis,
+            ')' => HydogenLayerSubTokens::CloseParenthesis,
+            ',' => HydogenLayerSubTokens::Comma,
+            '-' => HydogenLayerSubTokens::Dash,
+            'H' => HydogenLayerSubTokens::H,
             unexpected_char => {
                 return Some(Err(HydrogenLayerTokenError::InvalidCharacter(unexpected_char)));
             }
