@@ -18,6 +18,8 @@ pub enum HydogenLayerSubTokens<Idx> {
     OpenParenthesis,
     /// Close parenthesis token: `)`.
     CloseParenthesis,
+    /// Asterisk token : `*``
+    Asterisk,
 }
 
 impl<Idx: Display> Display for HydogenLayerSubTokens<Idx> {
@@ -29,6 +31,7 @@ impl<Idx: Display> Display for HydogenLayerSubTokens<Idx> {
             HydogenLayerSubTokens::Dash => write!(f, "-"),
             HydogenLayerSubTokens::Index(idx) => write!(f, "{}", idx),
             HydogenLayerSubTokens::H => write!(f, "H"),
+            HydogenLayerSubTokens::Asterisk => write!(f, "*"),
         }
     }
 }
@@ -94,6 +97,7 @@ impl<Idx: IndexLike> Iterator for HydrogenLayerTokenIter<'_, Idx> {
             ',' => HydogenLayerSubTokens::Comma,
             '-' => HydogenLayerSubTokens::Dash,
             'H' => HydogenLayerSubTokens::H,
+            '*' => HydogenLayerSubTokens::Asterisk,
             unexpected_char => {
                 return Some(Err(HydrogenLayerTokenError::InvalidCharacter(unexpected_char)));
             }
