@@ -5,7 +5,7 @@ use alloc::vec::Vec;
 
 use crate::{
     errors::AtomConnectionTokenError,
-    impls::main_layer::atom_connection_layer::connection_layer_base_token_iter::{
+    impls::main_layer::atom_connection_layer::connection_layer_token_iter::{
         ConnectionLayerToken, ConnectionLayerTokenIter,
     },
     traits::IndexLike,
