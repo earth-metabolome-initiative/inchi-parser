@@ -36,20 +36,20 @@ impl<Idx: Display> Display for HydogenLayerSubTokens<Idx> {
     }
 }
 
-pub(super) struct HydrogenLayerTokenIter<'a, Idx> {
+pub(super) struct HydrogenLayerSubTokenIter<'a, Idx> {
     /// The peekable chars iterator
     chars: core::iter::Peekable<Chars<'a>>,
     /// Phantom data for the index type
     _phantom: core::marker::PhantomData<Idx>,
 }
 
-impl<'a, Idx> From<&'a str> for HydrogenLayerTokenIter<'a, Idx> {
+impl<'a, Idx> From<&'a str> for HydrogenLayerSubTokenIter<'a, Idx> {
     fn from(s: &'a str) -> Self {
         Self { chars: s.chars().peekable(), _phantom: core::marker::PhantomData }
     }
 }
 
-impl<'a, Idx: IndexLike> HydrogenLayerTokenIter<'a, Idx> {
+impl<'a, Idx: IndexLike> HydrogenLayerSubTokenIter<'a, Idx> {
     /// Returns whether the next character is a digit.
     pub fn peek_is_digit(&mut self) -> Option<bool> {
         Some(self.chars.peek()?.is_ascii_digit())
@@ -82,7 +82,7 @@ impl<'a, Idx: IndexLike> HydrogenLayerTokenIter<'a, Idx> {
     }
 }
 
-impl<Idx: IndexLike> Iterator for HydrogenLayerTokenIter<'_, Idx> {
+impl<Idx: IndexLike> Iterator for HydrogenLayerSubTokenIter<'_, Idx> {
     type Item = Result<HydogenLayerSubTokens<Idx>, HydrogenLayerTokenError<Idx>>;
     fn next(&mut self) -> Option<Self::Item> {
         if self.peek_is_digit()? {

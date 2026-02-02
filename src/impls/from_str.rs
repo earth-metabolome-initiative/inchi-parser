@@ -11,8 +11,6 @@ impl<V: Version> FromStr for InChI<V> {
     type Err = Error<usize>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        // TODO: split the string at all '/'
-
         // First we remove the "InChI=" prefix
         let Some(s) = s.strip_prefix(crate::constants::INCHI_PREFIX) else {
             return Err(Self::Err::MissingInchiPrefix);
