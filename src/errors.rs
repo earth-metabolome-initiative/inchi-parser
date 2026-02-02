@@ -1,5 +1,6 @@
 //! Module for InChI-related errors.
 
+use molecular_formulas::errors::NumericError;
 use molecular_formulas::errors::ParserError;
 
 use crate::impls::main_layer::{
@@ -40,15 +41,12 @@ pub enum Error<Idx> {
 /// Errors that can occur while tokenizing the atom connection layer.
 #[derive(thiserror::Error, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AtomConnectionTokenError<Idx> {
+    /// Numeric error
+    #[error("Atom index cannot be zero")]
+    NumericError(#[from] NumericError),
     /// Invalid token encountered
     #[error("Invalid character encountered: '{0}'")]
     InvalidCharacter(char),
-    /// Invalid atom index encountered
-    #[error("Atom index found larger than maximum size of the index type")]
-    IndexOverflow,
-    /// Zero atom index encountered
-    #[error("Atom index cannot be zero")]
-    IndexZero,
     /// The underlying iterator is intermittently empty
     #[error("The underlying iterator is empty")]
     UnderlyingIteratorEmpty,
@@ -83,12 +81,9 @@ pub enum AtomConnectionTokenError<Idx> {
 #[derive(thiserror::Error, Debug, Clone, Copy, PartialEq, Eq)]
 /// Errors that can occur while tokenizing the hydrogen layer.
 pub enum HydrogenLayerTokenError<Idx> {
-    /// Invalid atom index encountered
-    #[error("Atom index found larger than maximum size of the index type")]
-    IndexOverflow,
-    /// Zero atom index encountered
+    /// Numeric error
     #[error("Atom index cannot be zero")]
-    IndexZero,
+    NumericError(#[from] NumericError),
     /// Invalid token encountered
     #[error("Invalid character encountered: '{0}'")]
     InvalidCharacter(char),

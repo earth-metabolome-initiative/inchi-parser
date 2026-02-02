@@ -16,6 +16,7 @@ pub(super) struct HydrogenLayerTokenIter<'a, Idx> {
 pub enum HydrogenLayerToken<Idx> {
     /// An atom index
     Atom(Idx),
+    Range,
     // Branch(Vec<Vec<HydrogenLayerToken<Idx>>>), // TODO: not sure how this should look like
 }
 
