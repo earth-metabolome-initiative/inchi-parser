@@ -1,4 +1,3 @@
-use alloc::string::String;
 use core::{fmt::Display, str::Chars};
 
 use crate::{errors::HydrogenLayerTokenError, traits::IndexLike};
@@ -56,7 +55,11 @@ pub(super) struct HydrogenLayerSubTokenIter<'a, Idx> {
 
 impl<'a, Idx> From<&'a str> for HydrogenLayerSubTokenIter<'a, Idx> {
     fn from(s: &'a str) -> Self {
-        Self { chars: s.chars().peekable(), _phantom: core::marker::PhantomData }
+        Self {
+            chars: s.chars().peekable(),
+            _phantom: core::marker::PhantomData,
+            in_parenthesis: false,
+        }
     }
 }
 
@@ -98,6 +101,7 @@ where
             };
 
             if self.consume_dash() {
+                // if we are in parenthesis, the dash is not allowed
                 if self.in_parenthesis {
                     return Some(Err(HydrogenLayerTokenError::InvalidCharacter('-')));
                 }
@@ -127,10 +131,13 @@ where
             ',' => HydogenLayerSubTokens::Comma,
             'H' => {
                 if self.peek_is_digit()? {
-                    match self.consume_digit::<u8>() {
-                        Ok(counter) => HydogenLayerSubTokens::H(counter),
-                        Err(e) => return Some(Err(e)),
-                    }
+                    let maybe_index = try_fold_number(&mut self.chars);
+                    let res = match maybe_index {
+                        None => 1u8,
+                        Some(Ok(i)) => i,
+                        Some(Err(e)) => return Some(Err(e.into())),
+                    };
+                    HydogenLayerSubTokens::H(res)
                 } else {
                     HydogenLayerSubTokens::H(1)
                 }
