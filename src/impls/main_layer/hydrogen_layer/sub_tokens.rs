@@ -69,6 +69,10 @@ impl<'a, Idx: IndexLike> HydrogenLayerSubTokenIter<'a, Idx> {
         Some(self.chars.peek()?.is_ascii_digit())
     }
 
+    pub fn peek_is_hydrogen(&mut self) -> Option<bool> {
+        Some(self.chars.peek()? == &'H')
+    }
+
     fn consume_dash(&mut self) -> bool {
         if self.chars.peek() == Some(&'-') {
             self.chars.next();
@@ -126,7 +130,17 @@ where
         }
 
         let token = match self.chars.next()? {
-            '(' => HydogenLayerSubTokens::OpenParenthesis,
+            '(' => {
+                if !self.peek_is_hydrogen()? {
+                    return Some(Err(HydrogenLayerTokenError::IllegalConsecutiveSubTokens {
+                        previous: HydogenLayerSubTokens::SharedHydrogens(1),
+                        illegal: HydogenLayerSubTokens::Index(Idx::zero()),
+                    }));
+                }
+
+                self.in_parenthesis = true;
+                HydogenLayerSubTokens::SharedHydrogens(1)
+            }
             ')' => HydogenLayerSubTokens::CloseParenthesis,
             ',' => HydogenLayerSubTokens::Comma,
             'H' => {

@@ -1,10 +1,10 @@
 //! Submodule with the elemental tokens compositing a connection layer base
 //! token.
 
+use crate::{errors::AtomConnectionTokenError, traits::IndexLike};
 use alloc::string::String;
 use core::{fmt::Display, str::Chars};
-
-use crate::{errors::AtomConnectionTokenError, traits::IndexLike};
+use molecular_formulas::errors::NumericError;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 /// Enum representing the elemental tokens that compose a connection layer base
@@ -78,11 +78,11 @@ impl<'a, Idx: IndexLike> ConnectionLayerSubTokenIter<'a, Idx> {
             }
         }
         let Ok(number) = number_str.parse::<Idx>() else {
-            return Err(AtomConnectionTokenError::IndexOverflow);
+            return Err(NumericError::PositiveOverflow.into());
         };
 
         if number == Idx::ZERO {
-            return Err(AtomConnectionTokenError::IndexZero);
+            return Err(AtomConnectionTokenError::NumericError(NumericError::LeadingZero));
         }
 
         Ok(number)

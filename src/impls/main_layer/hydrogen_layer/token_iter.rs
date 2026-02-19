@@ -24,6 +24,7 @@ impl<Idx: IndexLike> Display for HydrogenLayerToken<Idx> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::Atom(atom_index) => write!(f, "{atom_index}"),
+            Self::Range => todo!(),
         }
     }
 }
