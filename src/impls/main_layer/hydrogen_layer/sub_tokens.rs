@@ -1,7 +1,8 @@
 use core::{fmt::Display, str::Chars};
 
-use crate::{errors::HydrogenLayerTokenError, traits::IndexLike};
 use molecular_formulas::{NumberLike, parsable::try_fold_number};
+
+use crate::{errors::HydrogenLayerTokenError, traits::IndexLike};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 /// Enum representing the elemental tokens that compose a hydrogen layer.
@@ -18,7 +19,7 @@ pub enum HydogenLayerSubTokens<Idx> {
     SharedHydrogens(u8),
     /// Close parenthesis token: `)`.
     CloseParenthesis,
-    /// Asterisk token : `*``. Is always preceded by a digit
+    /// Asterisk token : `*`. Is always preceded by a digit
     Asterisk(u8),
 }
 
@@ -98,91 +99,6 @@ where
 {
     type Item = Result<HydogenLayerSubTokens<Idx>, HydrogenLayerTokenError<Idx>>;
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(maybe_index) = try_fold_number(&mut self.chars) {
-            let begin_index = match maybe_index {
-                Ok(begin_index) => begin_index,
-                Err(e) => return Some(Err(e.into())),
-            };
-
-            if self.consume_dash() {
-                // if we are in parenthesis, the dash is not allowed
-                if self.in_parenthesis {
-                    return Some(Err(HydrogenLayerTokenError::InvalidCharacter('-')));
-                }
-                return Some(match try_fold_number(&mut self.chars) {
-                    None => Err(HydrogenLayerTokenError::InvalidCharacter('-')),
-                    Some(Err(e)) => Err(e.into()),
-                    Some(Ok(end_index)) => {
-                        Ok(HydogenLayerSubTokens::Range((begin_index, end_index)))
-                    }
-                });
-            }
-
-            if self.consume_asterisk() {
-                if self.in_parenthesis {
-                    return Some(Err(HydrogenLayerTokenError::InvalidCharacter('*')));
-                }
-                let Ok(index) = begin_index.try_into() else {
-                    return Some(Err(HydrogenLayerTokenError::InvalidCharacter('*')));
-                };
-                return Some(Ok(HydogenLayerSubTokens::Asterisk(index)));
-            }
-        }
-
-        let token = match self.chars.next()? {
-            '(' => {
-                if !self.peek_is_hydrogen()? {
-                    return Some(Err(HydrogenLayerTokenError::IllegalConsecutiveSubTokens {
-                        previous: HydogenLayerSubTokens::SharedHydrogens(1),
-                        illegal: HydogenLayerSubTokens::Index(Idx::zero()),
-                    }));
-                }
-
-                self.in_parenthesis = true;
-                HydogenLayerSubTokens::SharedHydrogens(1)
-            }
-            ')' => HydogenLayerSubTokens::CloseParenthesis,
-            ',' => HydogenLayerSubTokens::Comma,
-            'H' => {
-                if self.peek_is_digit()? {
-                    let maybe_index = try_fold_number(&mut self.chars);
-                    let res = match maybe_index {
-                        None => 1u8,
-                        Some(Ok(i)) => i,
-                        Some(Err(e)) => return Some(Err(e.into())),
-                    };
-                    HydogenLayerSubTokens::H(res)
-                } else {
-                    HydogenLayerSubTokens::H(1)
-                }
-            }
-            '*' => HydogenLayerSubTokens::Asterisk,
-            unexpected_char => {
-                return Some(Err(HydrogenLayerTokenError::InvalidCharacter(unexpected_char)));
-            }
-        };
-
-        Some(match self.peek_is_digit() {
-            Some(true) => {
-                // If the next token is digit, we are done for this iteration.
-                Ok(token)
-            }
-            Some(false) => {
-                // If the next token is not a digit, we are in an error state.
-                let next_token = match self.next()? {
-                    Ok(next_token) => next_token,
-                    Err(e) => return Some(Err(e)),
-                };
-                Err(HydrogenLayerTokenError::IllegalConsecutiveSubTokens {
-                    previous: token.into(),
-                    illegal: next_token.into(),
-                })
-            }
-            None => {
-                // If the iterator is empty, we return an error as the current
-                // token cannot be the last token.
-                Err(HydrogenLayerTokenError::UnexpectedEndOfInput(token))
-            }
-        })
+        todo!()
     }
 }

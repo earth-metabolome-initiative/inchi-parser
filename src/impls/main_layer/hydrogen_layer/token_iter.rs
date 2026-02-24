@@ -1,10 +1,8 @@
+use alloc::vec::Vec;
 use core::fmt::Display;
 
-use alloc::vec::Vec;
-
-use crate::traits::IndexLike;
-
 use super::sub_tokens::HydrogenLayerSubTokenIter;
+use crate::traits::IndexLike;
 
 /// Iterator over the `Token`s found in a provided string.
 pub(super) struct HydrogenLayerTokenIter<'a, Idx> {
@@ -20,14 +18,14 @@ pub enum HydrogenLayerToken<Idx> {
     // Branch(Vec<Vec<HydrogenLayerToken<Idx>>>), // TODO: not sure how this should look like
 }
 
-impl<Idx: IndexLike> Display for HydrogenLayerToken<Idx> {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            Self::Atom(atom_index) => write!(f, "{atom_index}"),
-            Self::Range => todo!(),
-        }
-    }
-}
+// impl<Idx: IndexLike> Display for HydrogenLayerToken<Idx> {
+//     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+//         match self {
+//             Self::Atom(atom_index) => write!(f, "{atom_index}"),
+//             Self::Range => todo!(),
+//         }
+//     }
+// }
 
 impl<'a, Idx> From<&'a str> for HydrogenLayerTokenIter<'a, Idx> {
     fn from(value: &'a str) -> Self {

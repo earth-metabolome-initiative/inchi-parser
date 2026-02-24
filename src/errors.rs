@@ -1,7 +1,6 @@
 //! Module for InChI-related errors.
 
-use molecular_formulas::errors::NumericError;
-use molecular_formulas::errors::ParserError;
+use molecular_formulas::errors::{NumericError, ParserError};
 
 use crate::impls::main_layer::{
     atom_connection_layer::connection_layer_token_iter::ConnectionLayerSubToken,

@@ -1,10 +1,12 @@
 //! Submodule with the elemental tokens compositing a connection layer base
 //! token.
 
-use crate::{errors::AtomConnectionTokenError, traits::IndexLike};
 use alloc::string::String;
 use core::{fmt::Display, str::Chars};
+
 use molecular_formulas::errors::NumericError;
+
+use crate::{errors::AtomConnectionTokenError, traits::IndexLike};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 /// Enum representing the elemental tokens that compose a connection layer base
