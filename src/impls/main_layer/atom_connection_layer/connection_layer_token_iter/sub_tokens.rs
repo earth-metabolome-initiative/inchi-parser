@@ -1,10 +1,9 @@
 //! Submodule with the elemental tokens compositing a connection layer base
 //! token.
 
-use alloc::string::String;
 use core::{fmt::Display, str::Chars};
 
-use molecular_formulas::errors::NumericError;
+use molecular_formulas::{BaselineDigit, NumberLike, try_fold_number};
 
 use crate::{errors::AtomConnectionTokenError, traits::IndexLike};
 
@@ -47,9 +46,9 @@ pub(super) struct ConnectionLayerSubTokenIter<'a, Idx> {
     _phantom: core::marker::PhantomData<Idx>,
 }
 
-impl<'a, Idx> From<&'a str> for ConnectionLayerSubTokenIter<'a, Idx> {
-    fn from(s: &'a str) -> Self {
-        Self { chars: s.chars().peekable(), _phantom: core::marker::PhantomData }
+impl<'a, Idx> From<core::iter::Peekable<Chars<'a>>> for ConnectionLayerSubTokenIter<'a, Idx> {
+    fn from(s: core::iter::Peekable<Chars<'a>>) -> Self {
+        Self { chars: s, _phantom: core::marker::PhantomData }
     }
 }
 
@@ -63,42 +62,20 @@ impl<'a, Idx: IndexLike> ConnectionLayerSubTokenIter<'a, Idx> {
     pub fn is_empty(&mut self) -> bool {
         self.chars.peek().is_none()
     }
-
-    /// Consumes and returns a digit as a `Idx`
-    ///
-    /// # Errors
-    ///
-    /// * If the parsed digit overflows the `Idx` type.
-    pub fn consume_digit(&mut self) -> Result<Idx, AtomConnectionTokenError<Idx>> {
-        let mut number_str = String::new();
-        while let Some(&next_char) = self.chars.peek() {
-            if next_char.is_ascii_digit() {
-                number_str.push(next_char);
-                self.chars.next();
-            } else {
-                break;
-            }
-        }
-        let Ok(number) = number_str.parse::<Idx>() else {
-            return Err(NumericError::PositiveOverflow.into());
-        };
-
-        if number == Idx::ZERO {
-            return Err(AtomConnectionTokenError::NumericError(NumericError::LeadingZero));
-        }
-
-        Ok(number)
-    }
 }
 
-impl<Idx: IndexLike> Iterator for ConnectionLayerSubTokenIter<'_, Idx> {
+impl<Idx: IndexLike + NumberLike> Iterator for ConnectionLayerSubTokenIter<'_, Idx> {
     type Item = Result<ConnectionLayerSubToken<Idx>, AtomConnectionTokenError<Idx>>;
     fn next(&mut self) -> Option<Self::Item> {
         if self.peek_is_digit()? {
-            return match self.consume_digit() {
-                Ok(idx) => Some(Ok(ConnectionLayerSubToken::Index(idx))),
-                Err(e) => Some(Err(e)),
+            let Some(maybe_number) = try_fold_number::<Idx, BaselineDigit, _>(&mut self.chars)
+            else {
+                unreachable!()
             };
+            match maybe_number {
+                Ok(idx) => return Some(Ok(ConnectionLayerSubToken::Index(idx))),
+                Err(e) => return Some(Err(e.into())),
+            }
         }
         let token = match self.chars.next()? {
             '(' => ConnectionLayerSubToken::OpenParenthesis,

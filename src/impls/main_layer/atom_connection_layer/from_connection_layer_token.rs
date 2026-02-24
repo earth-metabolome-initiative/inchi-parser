@@ -1,7 +1,10 @@
 //! Parses a validated iterator of connection layer tokens into a vector of
 //! edges.
 
+use core::str::Chars;
+
 use alloc::vec::Vec;
+use molecular_formulas::NumberLike;
 
 use crate::{
     errors::AtomConnectionTokenError,
@@ -13,7 +16,7 @@ use crate::{
 
 pub(super) trait FromConnectionLayer: Sized {
     /// Index type used in the edges.
-    type AtomIndex: IndexLike;
+    type AtomIndex: IndexLike + NumberLike;
 
     /// Parses a validated iterator of connection layer tokens into a vector of
     /// edges.
@@ -26,7 +29,7 @@ pub(super) trait FromConnectionLayer: Sized {
     ///
     /// * Returns `AtomConnectionTokenError` if parsing fails.
     fn from_connection_layer_token(
-        tokens: &str,
+        tokens: core::iter::Peekable<Chars<'_>>,
     ) -> Result<Self, AtomConnectionTokenError<Self::AtomIndex>>;
 }
 
@@ -74,11 +77,11 @@ fn parse_token<Idx: IndexLike>(
     })
 }
 
-impl<Idx: IndexLike> FromConnectionLayer for Vec<(Idx, Idx)> {
+impl<Idx: IndexLike + NumberLike> FromConnectionLayer for Vec<(Idx, Idx)> {
     type AtomIndex = Idx;
 
     fn from_connection_layer_token(
-        tokens: &str,
+        tokens: core::iter::Peekable<Chars<'_>>,
     ) -> Result<Self, AtomConnectionTokenError<Self::AtomIndex>> {
         let mut edges = Vec::new();
         let iter: ConnectionLayerTokenIter<Idx> = tokens.into();

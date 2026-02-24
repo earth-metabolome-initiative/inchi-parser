@@ -4,10 +4,11 @@ use crate::traits::prefix::Prefix;
 
 pub trait FromStrWithContext: Sized {
     type Context<'a>;
+    type Input<'a>;
     /// Given a string that matches a specific layer, the function tries to
     /// parse that layer and returns the struct for that layer or an error.
     fn from_str_with_context(
-        input: &str,
+        input: Self::Input<'_>,
         context: Self::Context<'_>,
     ) -> Result<Self, crate::errors::Error<usize>>;
 }
