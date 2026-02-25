@@ -16,7 +16,7 @@ use crate::{
 
 pub(super) trait FromConnectionLayer: Sized {
     /// Index type used in the edges.
-    type AtomIndex: IndexLike + NumberLike;
+    type AtomIndex: NumberLike;
 
     /// Parses a validated iterator of connection layer tokens into a vector of
     /// edges.
@@ -34,7 +34,7 @@ pub(super) trait FromConnectionLayer: Sized {
 }
 
 /// Adds an edge between two atom indices to the edges vector.
-fn add_edge<Idx: IndexLike>(
+fn add_edge<Idx: NumberLike>(
     left_index: Idx,
     right_index: Idx,
     edges: &mut Vec<(Idx, Idx)>,
@@ -50,7 +50,7 @@ fn add_edge<Idx: IndexLike>(
     Ok(())
 }
 
-fn parse_token<Idx: IndexLike>(
+fn parse_token<Idx: NumberLike>(
     last_atom: Option<Idx>,
     token: ConnectionLayerToken<Idx>,
     edges: &mut Vec<(Idx, Idx)>,
@@ -77,7 +77,7 @@ fn parse_token<Idx: IndexLike>(
     })
 }
 
-impl<Idx: IndexLike + NumberLike> FromConnectionLayer for Vec<(Idx, Idx)> {
+impl<Idx: NumberLike> FromConnectionLayer for Vec<(Idx, Idx)> {
     type AtomIndex = Idx;
 
     fn from_connection_layer_token(

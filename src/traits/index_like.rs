@@ -1,42 +1,36 @@
 //! Submodule defining traits for numbers that can be used as indices.
 
-use core::{
-    fmt::{Debug, Display},
-    ops::Sub,
-    str::FromStr,
-};
+use core::ops::{AddAssign, SubAssign};
 
-use num_traits::{ConstOne, ConstZero};
+use geometric_traits::traits::IntoUsize;
+use molecular_formulas::NumberLike;
+use num_traits::{Bounded, SaturatingAdd, SaturatingSub, ToPrimitive, Unsigned};
 
 /// A trait for types that can be used as indices.
 pub trait IndexLike:
-    Copy
-    + Clone
-    + Debug
-    + Display
-    + ConstZero
-    + ConstOne
-    + Sub<Output = Self>
-    + PartialEq
-    + Eq
-    + FromStr
-    + PartialOrd
+    NumberLike
     + Ord
+    + IntoUsize
+    + ToPrimitive
+    + SaturatingAdd
+    + SaturatingSub
+    + Unsigned
+    + Bounded
+    + AddAssign
+    + SubAssign
 {
 }
 
 impl<T> IndexLike for T where
-    T: Copy
-        + Clone
-        + Debug
-        + Display
-        + ConstZero
-        + ConstOne
-        + Sub<Output = Self>
-        + PartialEq
-        + Eq
-        + FromStr
-        + PartialOrd
+    T: NumberLike
         + Ord
+        + IntoUsize
+        + ToPrimitive
+        + SaturatingAdd
+        + SaturatingSub
+        + Unsigned
+        + Bounded
+        + AddAssign
+        + SubAssign
 {
 }

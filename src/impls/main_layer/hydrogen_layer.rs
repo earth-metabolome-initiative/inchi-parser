@@ -11,10 +11,11 @@ use crate::{
 impl FromStrWithContext for HydrogensSubLayer {
     type Context<'a> = &'a InChIFormula;
     type Input<'a> = &'a str;
+    type Idx = u16;
     fn from_str_with_context(
         input: Self::Input<'_>,
         context: Self::Context<'_>,
-    ) -> Result<Self, Error<usize>> {
+    ) -> Result<Self, Error<Self::Idx>> {
         Err(Error::UnimplementedFeature("HydrogenSublayer not implemented yet"))
     }
 }

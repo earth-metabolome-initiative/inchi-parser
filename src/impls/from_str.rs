@@ -8,7 +8,7 @@ use crate::{
 };
 
 impl<V: Version> FromStr for InChI<V> {
-    type Err = Error<usize>;
+    type Err = Error<u16>;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         // First we remove the "InChI=" prefix

@@ -2,7 +2,6 @@ use alloc::vec::Vec;
 use core::fmt::Display;
 
 use super::sub_tokens::HydrogenLayerSubTokenIter;
-use crate::traits::IndexLike;
 
 /// Iterator over the `Token`s found in a provided string.
 pub(super) struct HydrogenLayerTokenIter<'a, Idx> {

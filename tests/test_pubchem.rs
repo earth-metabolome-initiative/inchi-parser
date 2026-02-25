@@ -60,9 +60,7 @@ fn validate_pubchem_inchi(file_path: &Path) -> Result<(), Box<dyn std::error::Er
         let inchi_str = result.inchi.clone();
         match inchi_str.parse::<InChI>() {
             Ok(_) => {}
-            Err(Error::UnimplementedFeature(msg)) => {
-                continue;
-            }
+            Err(Error::UnimplementedFeature(msg)) => {}
             Err(e) => {
                 let error_key = e.to_string();
 

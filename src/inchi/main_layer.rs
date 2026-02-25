@@ -14,12 +14,13 @@ use crate::traits::parse::{ConsumeStr, PrefixFromStrWithContext};
 /// The main layer of an InChI.
 pub struct MainLayer {
     chemical_formula: InChIFormula,
-    atom_connections: Option<AtomConnectionLayer>,
+    atom_connections: Option<AtomConnectionLayer<u16>>,
     hydrogens: Option<HydrogensSubLayer>,
 }
 
 impl ConsumeStr for MainLayer {
-    fn consume_str(input: &str) -> Result<(Self, &str), crate::errors::Error<usize>> {
+    type Idx = u16;
+    fn consume_str(input: &str) -> Result<(Self, &str), crate::errors::Error<Self::Idx>> {
         // Then we parse the molecular formula layer
         // we strip everything until the next '/'
         let (chemical_formula_layer, mut layer_remainder) =

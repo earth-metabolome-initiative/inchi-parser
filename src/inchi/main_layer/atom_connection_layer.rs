@@ -4,13 +4,13 @@ use alloc::vec::Vec;
 
 use geometric_traits::prelude::*;
 
-use crate::traits::prefix::Prefix;
+use crate::traits::{IndexLike, prefix::Prefix};
 /// A molecular graph that is undirected.
 pub type MolecularGraph<Idx> = GenericGraph<Idx, SymmetricCSR2D<CSR2D<Idx, Idx, Idx>>>;
 
 /// The atom connection layer
-pub(crate) type AtomConnectionLayer = Vec<MolecularGraph<usize>>;
+pub(crate) type AtomConnectionLayer<Idx> = Vec<MolecularGraph<Idx>>;
 
-impl Prefix for AtomConnectionLayer {
+impl Prefix for AtomConnectionLayer<u16> {
     const PREFIX: char = 'c';
 }

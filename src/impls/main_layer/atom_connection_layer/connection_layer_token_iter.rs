@@ -14,7 +14,7 @@ pub enum ConnectionLayerToken<Idx> {
     Atom(Idx),
 }
 
-impl<Idx: IndexLike> Display for ConnectionLayerToken<Idx> {
+impl<Idx: NumberLike> Display for ConnectionLayerToken<Idx> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::Branch(tokens) => {
@@ -47,7 +47,7 @@ pub(super) struct ConnectionLayerTokenIter<'a, Idx> {
     tokens: ConnectionLayerSubTokenIter<'a, Idx>,
 }
 
-impl<Idx: IndexLike + NumberLike> Iterator for ConnectionLayerTokenIter<'_, Idx> {
+impl<Idx: NumberLike> Iterator for ConnectionLayerTokenIter<'_, Idx> {
     type Item = Result<ConnectionLayerToken<Idx>, AtomConnectionTokenError<Idx>>;
     fn next(&mut self) -> Option<Self::Item> {
         let token = match self.tokens.next()? {

@@ -27,11 +27,14 @@ pub enum Error<Idx> {
     WrongPrefix,
     /// If the molecular formula contains a mixture but the atom connections
     /// layer does not
-    #[error("Molecular formula contains {0} mixtures but atom connection has {1}.")]
-    FormulaAndConnectionLayerMixtureMismatch(usize, usize),
+    #[error("Molecular formula contains {0} mixtures but atom connection layer does not match.")]
+    FormulaAndConnectionLayerMixtureMismatch(usize),
     /// Errors while tokenizing the atom connection layer
     #[error("Atom connection tokenization error: {0}")]
     AtomConnectionTokenError(#[from] AtomConnectionTokenError<Idx>),
+    /// Errors when converting a numberic value to an other numeric format
+    #[error("Numberic error: {0}")]
+    TryFromIntError(#[from] core::num::TryFromIntError),
     /// TODO! TEMPORARY ERROR TO REMOVE!
     #[error("Unimplemented feature: {0}")]
     UnimplementedFeature(&'static str),
