@@ -64,7 +64,7 @@ impl<'a, Idx> From<&'a str> for HydrogenLayerSubTokenIter<'a, Idx> {
     }
 }
 
-impl<'a, Idx: NumberLike> HydrogenLayerSubTokenIter<'a, Idx> {
+impl<'a, Idx: IndexLike> HydrogenLayerSubTokenIter<'a, Idx> {
     /// Returns whether the next character is a digit.
     pub fn peek_is_digit(&mut self) -> Option<bool> {
         Some(self.chars.peek()?.is_ascii_digit())
@@ -93,7 +93,7 @@ impl<'a, Idx: NumberLike> HydrogenLayerSubTokenIter<'a, Idx> {
     }
 }
 
-impl<Idx: NumberLike> Iterator for HydrogenLayerSubTokenIter<'_, Idx>
+impl<Idx: IndexLike> Iterator for HydrogenLayerSubTokenIter<'_, Idx>
 where
     u8: TryFrom<Idx>,
 {

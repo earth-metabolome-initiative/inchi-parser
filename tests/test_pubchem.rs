@@ -38,7 +38,7 @@ fn validate_pubchem_inchi(file_path: &Path) -> Result<(), Box<dyn std::error::Er
     let mut csv_reader =
         ReaderBuilder::new().delimiter(b'\t').has_headers(false).from_reader(reader);
 
-    let pb = ProgressBar::new(123_455_803);
+    let pb = ProgressBar::new(123_046_011);
 
     pb.set_style(
         ProgressStyle::default_bar()
@@ -106,7 +106,7 @@ fn validate_pubchem_inchi(file_path: &Path) -> Result<(), Box<dyn std::error::Er
 }
 
 #[test]
-#[ignore = "This test requires the sorted_pubchem_inchi.tsv.gz file to be present and is time-consuming."]
+#[ignore = "This test requires the sorted_pubchem_inchi_deduplicated.tsv.gz file to be present and is time-consuming."]
 /// Validate InChI parsing against PubChem
 /// CID-InChI-Key data.
 ///
@@ -115,10 +115,10 @@ fn validate_pubchem_inchi(file_path: &Path) -> Result<(), Box<dyn std::error::Er
 ///
 /// <https://ftp.ncbi.nlm.nih.gov/pubchem/Compound/Extras/CID-InChI-Key.gz>
 fn test_pubchem_validation() {
-    let file_path = Path::new("tests/sorted_pubchem_inchi.tsv.gz");
+    let file_path = Path::new("tests/sorted_pubchem_inchi_deduplicated.tsv.gz");
 
     if !file_path.exists() {
-        eprintln!("sorted_pubchem_inchi.tsv.gz file not found. Skipping test.");
+        eprintln!("sorted_pubchem_inchi_deduplicated.tsv.gz file not found. Skipping test.");
         return;
     }
 

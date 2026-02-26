@@ -52,7 +52,7 @@ impl<'a, Idx> From<core::iter::Peekable<Chars<'a>>> for ConnectionLayerSubTokenI
     }
 }
 
-impl<'a, Idx: NumberLike> ConnectionLayerSubTokenIter<'a, Idx> {
+impl<'a, Idx: IndexLike> ConnectionLayerSubTokenIter<'a, Idx> {
     /// Returns whether the next character is a digit.
     pub fn peek_is_digit(&mut self) -> Option<bool> {
         Some(self.chars.peek()?.is_ascii_digit())
@@ -66,7 +66,7 @@ impl<'a, Idx: NumberLike> ConnectionLayerSubTokenIter<'a, Idx> {
 
 impl<Idx> Iterator for ConnectionLayerSubTokenIter<'_, Idx>
 where
-    Idx: NumberLike,
+    Idx: IndexLike,
 {
     type Item = Result<ConnectionLayerSubToken<Idx>, AtomConnectionTokenError<Idx>>;
     fn next(&mut self) -> Option<Self::Item> {
