@@ -35,6 +35,9 @@ pub enum Error<Idx> {
     /// Errors when converting a numberic value to an other numeric format
     #[error("Numberic error: {0}")]
     TryFromIntError(#[from] core::num::TryFromIntError),
+    /// Errors while tokenizing the hydrogen layer
+    #[error("Hydrogen layer tokenization error: {0}")]
+    HydrogenLayerTokenError(#[from] HydrogenLayerTokenError<Idx>),
     /// TODO! TEMPORARY ERROR TO REMOVE!
     #[error("Unimplemented feature: {0}")]
     UnimplementedFeature(&'static str),
@@ -100,4 +103,7 @@ pub enum HydrogenLayerTokenError<Idx> {
     /// Unexpected end of input
     #[error("Unexpected end of input")]
     UnexpectedEndOfInput(HydogenLayerSubTokens<Idx>),
+    /// Integer conversion error (e.g. hydrogen count too large for u8)
+    #[error("Integer conversion error: {0}")]
+    TryFromIntError(core::num::TryFromIntError),
 }
