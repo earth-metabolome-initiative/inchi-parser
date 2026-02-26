@@ -2,7 +2,6 @@ use core::{fmt::Display, str::Chars};
 mod sub_tokens;
 use alloc::vec::Vec;
 
-use molecular_formulas::NumberLike;
 pub use sub_tokens::ConnectionLayerSubToken;
 use sub_tokens::ConnectionLayerSubTokenIter;
 

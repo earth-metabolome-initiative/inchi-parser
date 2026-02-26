@@ -3,7 +3,6 @@ use core::str::Chars;
 use crate::{
     inchi::main_layer::{AtomConnectionLayer, MolecularGraph},
     traits::{
-        IndexLike,
         parse::{FromStrWithContext, PrefixFromStrWithContext},
         prefix::Prefix,
     },

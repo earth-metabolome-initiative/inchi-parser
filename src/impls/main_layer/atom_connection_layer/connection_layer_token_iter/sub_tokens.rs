@@ -3,7 +3,7 @@
 
 use core::{fmt::Display, str::Chars};
 
-use molecular_formulas::{BaselineDigit, NumberLike, try_fold_number};
+use molecular_formulas::{BaselineDigit, try_fold_number};
 
 use crate::{errors::AtomConnectionTokenError, traits::IndexLike};
 

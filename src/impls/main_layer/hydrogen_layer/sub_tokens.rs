@@ -1,7 +1,5 @@
 use core::{fmt::Display, str::Chars};
 
-use molecular_formulas::{NumberLike, parsable::try_fold_number};
-
 use crate::{errors::HydrogenLayerTokenError, traits::IndexLike};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

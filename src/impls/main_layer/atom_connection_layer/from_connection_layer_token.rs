@@ -4,7 +4,7 @@
 use core::str::Chars;
 
 use alloc::vec::Vec;
-use molecular_formulas::NumberLike;
+use molecular_formulas::{InChIFormula, MolecularFormula};
 
 use crate::{
     errors::AtomConnectionTokenError,
@@ -17,7 +17,6 @@ use crate::{
 pub(super) trait FromConnectionLayer: Sized {
     /// Index type used in the edges.
     type AtomIndex: IndexLike;
-
     /// Parses a validated iterator of connection layer tokens into a vector of
     /// edges.
     ///
@@ -79,7 +78,6 @@ fn parse_token<Idx: IndexLike>(
 
 impl<Idx: IndexLike> FromConnectionLayer for Vec<(Idx, Idx)> {
     type AtomIndex = Idx;
-
     fn from_connection_layer_token(
         tokens: core::iter::Peekable<Chars<'_>>,
     ) -> Result<Self, AtomConnectionTokenError<Self::AtomIndex>> {
