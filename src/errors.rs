@@ -4,7 +4,7 @@ use molecular_formulas::errors::{NumericError, ParserError};
 
 use crate::impls::main_layer::{
     atom_connection_layer::connection_layer_token_iter::ConnectionLayerSubToken,
-    hydrogen_layer::sub_tokens::HydogenLayerSubTokens,
+    hydrogen_layer::sub_tokens::HydrogenLayerSubTokens,
 };
 
 /// Errors that can occur while parsing or handling InChIs.
@@ -35,6 +35,12 @@ pub enum Error<Idx> {
     /// Errors when converting a numberic value to an other numeric format
     #[error("Numberic error: {0}")]
     TryFromIntError(#[from] core::num::TryFromIntError),
+    /// Errors while tokenizing the hydrogen layer
+    #[error("Hydrogen layer tokenization error: {0}")]
+    HydrogenLayerTokenError(#[from] HydrogenLayerTokenError<Idx>),
+    /// Unrecognized layer prefix character after the main layer
+    #[error("Unrecognized layer prefix: '{0}'")]
+    UnrecognizedLayerPrefix(char),
     /// TODO! TEMPORARY ERROR TO REMOVE!
     #[error("Unimplemented feature: {0}")]
     UnimplementedFeature(&'static str),
@@ -78,6 +84,9 @@ pub enum AtomConnectionTokenError<Idx> {
     /// Self loop detected
     #[error("Self loop detected:  {0}")]
     SelfLoopDetected(Idx),
+    /// Atom index is zero (InChI indices are 1-based)
+    #[error("Atom index is zero; InChI uses 1-based indices")]
+    ZeroAtomIndex,
 }
 
 #[derive(thiserror::Error, Debug, Clone, Copy, PartialEq, Eq)]
@@ -93,11 +102,28 @@ pub enum HydrogenLayerTokenError<Idx> {
     #[error("Illegal consecutive tokens: '{previous}' followed by '{illegal}'")]
     IllegalConsecutiveSubTokens {
         /// The previous token
-        previous: HydogenLayerSubTokens<Idx>,
+        previous: HydrogenLayerSubTokens<Idx>,
         /// The illegal token
-        illegal: HydogenLayerSubTokens<Idx>,
+        illegal: HydrogenLayerSubTokens<Idx>,
     },
     /// Unexpected end of input
     #[error("Unexpected end of input")]
-    UnexpectedEndOfInput(HydogenLayerSubTokens<Idx>),
+    UnexpectedEndOfInput(HydrogenLayerSubTokens<Idx>),
+    /// Integer conversion error (e.g. hydrogen count too large for u8)
+    #[error("Integer conversion error: {0}")]
+    TryFromIntError(core::num::TryFromIntError),
+    /// Atom index is zero (InChI indices are 1-based)
+    #[error("Atom index is zero; InChI uses 1-based indices")]
+    ZeroAtomIndex,
+    /// Atom index exceeds the formula's non-hydrogen atom count
+    #[error("Atom index {index} exceeds non-hydrogen atom count {num_atoms}")]
+    AtomIndexOutOfBounds {
+        /// The 1-based atom index from the input
+        index: Idx,
+        /// The number of non-hydrogen atoms in the subformula
+        num_atoms: usize,
+    },
+    /// Range start exceeds range end
+    #[error("Invalid range: {0} > {1}")]
+    InvalidRange(Idx, Idx),
 }

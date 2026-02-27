@@ -6,15 +6,23 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lychee:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - name: Link Checker
-        uses: lycheeverse/lychee-action@v2
+        uses: lycheeverse/lychee-action@8646ba30535128ac92d33dfc9133794bfdd9b411
         with:
-          # Check all markdown and rust files
-          args: --verbose --no-progress './**/*.md' './**/*.rs'
+          # Check markdown and Rust sources while excluding generated/git dirs.
+          args: --verbose --no-progress --exclude-path './target/**' --exclude-path './.git/**' './**/*.md' './src/**/*.rs' './tests/**/*.rs'
           # Fail the action if broken links are found
           fail: true

@@ -5,7 +5,7 @@ pub(crate) use atom_connection_layer::{AtomConnectionLayer, MolecularGraph};
 mod hydrogen_layer;
 use core::str::FromStr;
 
-pub(crate) use hydrogen_layer::HydrogensSubLayer;
+pub(crate) use hydrogen_layer::{HydrogenComponent, HydrogensSubLayer, MobileHydrogenGroup};
 use molecular_formulas::InChIFormula;
 
 use crate::traits::parse::{ConsumeStr, PrefixFromStrWithContext};
@@ -37,7 +37,7 @@ impl ConsumeStr for MainLayer {
 
         Ok((
             MainLayer {
-                chemical_formula: chemical_formula,
+                chemical_formula,
                 atom_connections: atom_connection_layer,
                 hydrogens: hydrogen_layer,
             },

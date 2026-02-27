@@ -4,8 +4,6 @@
 use core::str::Chars;
 
 use alloc::vec::Vec;
-use molecular_formulas::{InChIFormula, MolecularFormula};
-
 use crate::{
     errors::AtomConnectionTokenError,
     impls::main_layer::atom_connection_layer::connection_layer_token_iter::{
@@ -38,6 +36,9 @@ fn add_edge<Idx: IndexLike>(
     right_index: Idx,
     edges: &mut Vec<(Idx, Idx)>,
 ) -> Result<(), AtomConnectionTokenError<Idx>> {
+    if left_index < Idx::ONE || right_index < Idx::ONE {
+        return Err(AtomConnectionTokenError::ZeroAtomIndex);
+    }
     if left_index == right_index {
         return Err(AtomConnectionTokenError::SelfLoopDetected(left_index));
     }

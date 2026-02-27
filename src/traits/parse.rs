@@ -3,7 +3,6 @@ use core::str::Chars;
 use crate::traits::{IndexLike, prefix::Prefix};
 
 /// Trait for parsing InChI layers.
-
 pub trait FromStrWithContext: Sized {
     type Idx: IndexLike;
     type Context<'a>;
