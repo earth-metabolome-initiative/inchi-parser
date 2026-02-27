@@ -48,7 +48,9 @@ pedantic = { level = "deny", priority = -1 }
 csv = "1.4.0"
 flate2 = "1.1.9"
 indicatif = "0.18.4"
+reqwest = { version = "0.12", features = ["stream"] }
 serde = "1.0.228"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "io-util", "fs"] }
 
 [profile.release]
 opt-level = 3

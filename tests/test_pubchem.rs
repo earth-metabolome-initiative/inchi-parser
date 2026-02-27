@@ -7,7 +7,7 @@
 //! ensure:
 //!
 //! ```bash
-//! cargo test --release --test test_pubchem_inchi_validation -- --ignored --nocapture
+//! cargo test --release --test test_pubchem -- --ignored --nocapture
 //! ```
 use std::{
     collections::HashMap,
@@ -22,11 +22,63 @@ use inchi_parser::{errors::Error, inchi::InChI};
 use indicatif::{ProgressBar, ProgressStyle};
 use serde::Deserialize;
 
+/// The URL for the PubChem CID-InChI-Key gzipped file.
+const PUBCHEM_URL: &str =
+    "https://ftp.ncbi.nlm.nih.gov/pubchem/Compound/Extras/CID-InChI-Key.gz";
+
+/// Local file name for the downloaded PubChem data.
+const PUBCHEM_FILE: &str = "tests/CID-InChI-Key.gz";
+
 /// Structure representing a PubChem compound entry from the CID-InChI-Key file.
+///
+/// The file is a tab-separated values file with three columns:
+/// CID, InChI, and InChIKey.
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 struct PubChemCompound {
+    /// PubChem Compound ID
+    cid: u64,
     /// InChI string
     inchi: String,
+    /// InChI Key
+    inchi_key: String,
+}
+
+/// Download the PubChem CID-InChI-Key file if it doesn't already exist.
+async fn ensure_pubchem_file(file_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    if file_path.exists() {
+        println!("PubChem file already exists at {}", file_path.display());
+        return Ok(());
+    }
+
+    println!("Downloading PubChem CID-InChI-Key file from {PUBCHEM_URL}...");
+    println!("This file is approximately 6.79 GB and may take a while to download.");
+
+    let response = reqwest::get(PUBCHEM_URL).await?;
+
+    if !response.status().is_success() {
+        return Err(format!("HTTP request failed with status: {}", response.status()).into());
+    }
+
+    let total_size = response.content_length().unwrap_or(0);
+
+    let pb = ProgressBar::new(total_size);
+    pb.set_style(
+        ProgressStyle::default_bar()
+            .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({bytes_per_sec}, {eta})")
+            .unwrap()
+            .progress_chars("#>-"),
+    );
+
+    let bytes = response.bytes().await?;
+    pb.set_position(bytes.len() as u64);
+
+    tokio::fs::write(file_path, &bytes).await?;
+
+    pb.finish_with_message("Download complete");
+    println!("Downloaded {} bytes.", bytes.len());
+
+    Ok(())
 }
 
 /// Read and validate PubChem data from the CID-InChI-Key file.
@@ -35,10 +87,13 @@ fn validate_pubchem_inchi(file_path: &Path) -> Result<(), Box<dyn std::error::Er
     let decoder = GzDecoder::new(file);
     let reader = BufReader::new(decoder);
 
-    let mut csv_reader =
-        ReaderBuilder::new().delimiter(b'\t').has_headers(false).from_reader(reader);
+    let mut csv_reader = ReaderBuilder::new()
+        .delimiter(b'\t')
+        .has_headers(false)
+        .from_reader(reader);
 
-    let pb = ProgressBar::new(123_046_011);
+    // Estimated count based on recent PubChem data
+    let pb = ProgressBar::new(123_000_000);
 
     pb.set_style(
         ProgressStyle::default_bar()
@@ -54,20 +109,16 @@ fn validate_pubchem_inchi(file_path: &Path) -> Result<(), Box<dyn std::error::Er
     let mut error_examples: HashMap<String, Vec<String>> = HashMap::new();
 
     for result in csv_reader.deserialize::<PubChemCompound>() {
-        let result = result?;
+        let compound = result?;
         pb.inc(1);
 
-        let inchi_str = result.inchi.clone();
-        match inchi_str.parse::<InChI>() {
-            Ok(_) => {}
-            Err(Error::UnimplementedFeature(msg)) => {}
+        match compound.inchi.parse::<InChI>() {
+            Ok(_) | Err(Error::UnimplementedFeature(_)) => {}
             Err(e) => {
                 let error_key = e.to_string();
-
                 let entry = error_examples.entry(error_key).or_default();
-
                 if entry.len() < 2 {
-                    entry.push(inchi_str);
+                    entry.push(compound.inchi);
                 }
             }
         }
@@ -99,28 +150,28 @@ fn validate_pubchem_inchi(file_path: &Path) -> Result<(), Box<dyn std::error::Er
             writeln!(file)?;
         }
 
-        println!("Wrote {} error types to failed_inchis.txt", error_examples.len());
+        println!(
+            "Wrote {} error types to failed_inchis.txt",
+            error_examples.len()
+        );
     }
 
     Ok(())
 }
 
 #[test]
-#[ignore = "This test requires the sorted_pubchem_inchi_deduplicated.tsv.gz file to be present and is time-consuming."]
-/// Validate InChI parsing against PubChem
-/// CID-InChI-Key data.
+#[ignore = "This test downloads a ~6.79 GB file and is time-consuming."]
+/// Validate InChI parsing against PubChem CID-InChI-Key data.
 ///
-/// The document, weighing compressed approximately 6.79 GB, can be downloaded
-/// from:
+/// The document is automatically downloaded from:
 ///
 /// <https://ftp.ncbi.nlm.nih.gov/pubchem/Compound/Extras/CID-InChI-Key.gz>
 fn test_pubchem_validation() {
-    let file_path = Path::new("tests/sorted_pubchem_inchi_deduplicated.tsv.gz");
+    let file_path = Path::new(PUBCHEM_FILE);
 
-    if !file_path.exists() {
-        eprintln!("sorted_pubchem_inchi_deduplicated.tsv.gz file not found. Skipping test.");
-        return;
-    }
+    let rt = tokio::runtime::Runtime::new().expect("Failed to create tokio runtime");
+    rt.block_on(ensure_pubchem_file(file_path))
+        .expect("Failed to ensure PubChem file is available");
 
     println!("Validating all PubChem InChI formulas...");
 
