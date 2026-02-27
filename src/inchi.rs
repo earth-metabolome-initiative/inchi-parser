@@ -18,11 +18,11 @@ use crate::{inchi::charge_layer::ChargeSubLayer, version::Version};
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// The InChI structure
 pub struct InChI<V: Version = crate::version::StandardVersion1_07_4> {
-    main_layer: MainLayer,
-    charge: ChargeSubLayer,
-    stereochemistry: StereochemistryLayer,
-    isotope: IsotopeLayer,
-    fixed_hydrogen: FixedHydrogenLayer,
-    reconnected: ReconnectedLayer,
-    _version: core::marker::PhantomData<V>,
+    pub(crate) main_layer: MainLayer,
+    pub(crate) charge: Option<ChargeSubLayer>,
+    pub(crate) stereochemistry: Option<StereochemistryLayer>,
+    pub(crate) isotope: Option<IsotopeLayer>,
+    pub(crate) fixed_hydrogen: Option<FixedHydrogenLayer>,
+    pub(crate) reconnected: Option<ReconnectedLayer>,
+    pub(crate) _version: core::marker::PhantomData<V>,
 }

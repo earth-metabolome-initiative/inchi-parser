@@ -33,7 +33,7 @@ where
             ConnectionLayerSubToken::CloseParenthesis => write!(f, ")"),
             ConnectionLayerSubToken::Comma => write!(f, ","),
             ConnectionLayerSubToken::Dash => write!(f, "-"),
-            ConnectionLayerSubToken::Index(idx) => write!(f, "{}", idx),
+            ConnectionLayerSubToken::Index(idx) => write!(f, "{idx}"),
         }
     }
 }
@@ -52,16 +52,12 @@ impl<'a, Idx> From<core::iter::Peekable<Chars<'a>>> for ConnectionLayerSubTokenI
     }
 }
 
-impl<'a, Idx: IndexLike> ConnectionLayerSubTokenIter<'a, Idx> {
+impl<Idx: IndexLike> ConnectionLayerSubTokenIter<'_, Idx> {
     /// Returns whether the next character is a digit.
     pub fn peek_is_digit(&mut self) -> Option<bool> {
         Some(self.chars.peek()?.is_ascii_digit())
     }
 
-    /// Returns whether the iterator is empty.
-    pub fn is_empty(&mut self) -> bool {
-        self.chars.peek().is_none()
-    }
 }
 
 impl<Idx> Iterator for ConnectionLayerSubTokenIter<'_, Idx>
@@ -102,8 +98,8 @@ where
                     Err(e) => return Some(Err(e)),
                 };
                 Err(AtomConnectionTokenError::IllegalConsecutiveSubTokens {
-                    previous: token.into(),
-                    illegal: next_token.into(),
+                    previous: token,
+                    illegal: next_token,
                 })
             }
             None => {

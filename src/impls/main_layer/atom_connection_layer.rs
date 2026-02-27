@@ -9,7 +9,7 @@ use crate::{
 };
 pub mod connection_layer_token_iter;
 mod from_connection_layer_token;
-use alloc::{format, vec::Vec};
+use alloc::vec::Vec;
 
 use from_connection_layer_token::FromConnectionLayer;
 use geometric_traits::prelude::*;
@@ -67,7 +67,13 @@ impl FromStrWithContext for AtomConnectionLayer<u16> {
             }
         }
 
-        Ok(molecular_graphs) // TODO: if the number of repetition is too big, then this might break ?
+        if subformulas.next().is_some() {
+            return Err(Error::FormulaAndConnectionLayerMixtureMismatch(
+                context.number_of_mixtures(),
+            ));
+        }
+
+        Ok(molecular_graphs)
     }
 }
 
@@ -88,9 +94,9 @@ impl FromStrWithContext for MolecularGraph<u16> {
             .expected_shape(vocab_size)
             .edges(edges.clone().into_iter())
             .build()
-            .expect(&format!(
-                "Failed to build UndiEdgesBuilder: vocabulary size: {}, edges: {:?}, number of edges: {}",
-                vocab_size, edges, edges.len()
+            .unwrap_or_else(|_| panic!(
+                "Failed to build UndiEdgesBuilder: vocabulary size: {vocab_size}, edges: {edges:?}, number of edges: {}",
+                edges.len()
             ));
 
         Ok(MolecularGraph::from((vocab_size, edges)))

@@ -37,7 +37,7 @@ impl ConsumeStr for MainLayer {
 
         Ok((
             MainLayer {
-                chemical_formula: chemical_formula,
+                chemical_formula,
                 atom_connections: atom_connection_layer,
                 hydrogens: hydrogen_layer,
             },

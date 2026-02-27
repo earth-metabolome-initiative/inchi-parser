@@ -2,14 +2,32 @@
 
 use alloc::vec::Vec;
 
-
 use crate::{
     errors::HydrogenLayerTokenError,
     inchi::main_layer::{HydrogenComponent, MobileHydrogenGroup},
     traits::IndexLike,
 };
 
-use super::sub_tokens::{HydogenLayerSubTokens, HydrogenLayerSubTokenIter};
+use super::sub_tokens::{HydrogenLayerSubTokens, HydrogenLayerSubTokenIter};
+
+/// Validates a 1-based atom index and converts it to 0-based, checking both
+/// for zero (InChI indices start at 1) and for exceeding `num_atoms`.
+fn validate_atom_index<Idx: IndexLike>(
+    idx: Idx,
+    num_atoms: usize,
+) -> Result<usize, HydrogenLayerTokenError<Idx>> {
+    if idx < Idx::ONE {
+        return Err(HydrogenLayerTokenError::ZeroAtomIndex);
+    }
+    let zero_based = (idx - Idx::ONE).into_usize();
+    if zero_based >= num_atoms {
+        return Err(HydrogenLayerTokenError::AtomIndexOutOfBounds {
+            index: idx,
+            num_atoms,
+        });
+    }
+    Ok(zero_based)
+}
 
 /// Parses one component string (after stripping any `n*` prefix) into a
 /// [`HydrogenComponent`].
@@ -43,17 +61,19 @@ where
         let token = result?;
         if in_mobile {
             match token {
-                HydogenLayerSubTokens::Comma => {
+                HydrogenLayerSubTokens::Comma => {
                     // Comma separates atom indices inside a mobile group — skip it
                 }
-                HydogenLayerSubTokens::Index(n) => {
+                HydrogenLayerSubTokens::Index(n) => {
+                    validate_atom_index(n, num_atoms)?;
                     mobile_atoms.push(n);
                 }
-                HydogenLayerSubTokens::CloseParenthesis => {
+                HydrogenLayerSubTokens::CloseParenthesis => {
                     // Convert 1-based to 0-based and emit the group
+                    // (indices already validated above)
                     let atoms = mobile_atoms
                         .drain(..)
-                        .map(|a| a.saturating_sub(&Idx::ONE))
+                        .map(|a| a - Idx::ONE)
                         .collect();
                     mobile_groups.push(MobileHydrogenGroup {
                         count: mobile_count,
@@ -62,29 +82,35 @@ where
                     });
                     in_mobile = false;
                 }
-                HydogenLayerSubTokens::Range(_) => {
+                HydrogenLayerSubTokens::Range(_) => {
                     // Ranges are not valid inside mobile groups
                     return Err(HydrogenLayerTokenError::InvalidCharacter('-'));
                 }
-                HydogenLayerSubTokens::H(_) => {
+                HydrogenLayerSubTokens::H(_) => {
                     return Err(HydrogenLayerTokenError::InvalidCharacter('H'));
                 }
-                HydogenLayerSubTokens::SharedHydrogens { .. } => {
+                HydrogenLayerSubTokens::SharedHydrogens { .. } => {
                     return Err(HydrogenLayerTokenError::InvalidCharacter('('));
                 }
-                HydogenLayerSubTokens::Asterisk(_) => {
+                HydrogenLayerSubTokens::Asterisk(_) => {
                     return Err(HydrogenLayerTokenError::InvalidCharacter('*'));
                 }
             }
         } else {
             match token {
-                HydogenLayerSubTokens::Comma => {
+                HydrogenLayerSubTokens::Comma => {
                     // Comma between fixed entries or between fixed and mobile blocks — skip it
                 }
-                HydogenLayerSubTokens::Index(n) => {
+                HydrogenLayerSubTokens::Index(n) => {
                     atom_buf.push(n);
                 }
-                HydogenLayerSubTokens::Range((s, e)) => {
+                HydrogenLayerSubTokens::Range((s, e)) => {
+                    if s > e {
+                        return Err(HydrogenLayerTokenError::InvalidRange(s, e));
+                    }
+                    // Validate both endpoints
+                    validate_atom_index(s, num_atoms)?;
+                    validate_atom_index(e, num_atoms)?;
                     // Expand the range into atom_buf (1-based indices)
                     let mut i = s;
                     loop {
@@ -95,27 +121,24 @@ where
                         i += Idx::ONE;
                     }
                 }
-                HydogenLayerSubTokens::H(count) => {
+                HydrogenLayerSubTokens::H(count) => {
                     // Assign fixed H count to all pending atoms
                     for idx in atom_buf.drain(..) {
-                        let zero_based = idx.saturating_sub(&Idx::ONE).into_usize();
-                        if zero_based >= fixed_h.len() {
-                            fixed_h.resize(zero_based + 1, 0);
-                        }
+                        let zero_based = validate_atom_index(idx, num_atoms)?;
                         fixed_h[zero_based] = count;
                     }
                 }
-                HydogenLayerSubTokens::SharedHydrogens { count, charged } => {
+                HydrogenLayerSubTokens::SharedHydrogens { count, charged } => {
                     // Start a new mobile group
                     in_mobile = true;
                     mobile_count = count;
                     mobile_charged = charged;
                     mobile_atoms.clear();
                 }
-                HydogenLayerSubTokens::CloseParenthesis => {
+                HydrogenLayerSubTokens::CloseParenthesis => {
                     return Err(HydrogenLayerTokenError::InvalidCharacter(')'));
                 }
-                HydogenLayerSubTokens::Asterisk(_) => {
+                HydrogenLayerSubTokens::Asterisk(_) => {
                     // Asterisk should have been consumed by the caller before invoking
                     // parse_component
                     return Err(HydrogenLayerTokenError::InvalidCharacter('*'));
@@ -127,14 +150,14 @@ where
     // Unclosed mobile group
     if in_mobile {
         return Err(HydrogenLayerTokenError::UnexpectedEndOfInput(
-            HydogenLayerSubTokens::CloseParenthesis,
+            HydrogenLayerSubTokens::CloseParenthesis,
         ));
     }
 
     // Pending atoms without a following H token
     if let Some(&last) = atom_buf.last() {
         return Err(HydrogenLayerTokenError::UnexpectedEndOfInput(
-            HydogenLayerSubTokens::Index(last),
+            HydrogenLayerSubTokens::Index(last),
         ));
     }
 

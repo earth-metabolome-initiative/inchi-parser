@@ -34,7 +34,7 @@ impl FromStrWithContext for HydrogensSubLayer {
             // The prefix is purely ASCII digits followed by '*', so we can scan bytes.
             let digit_count = component_str
                 .bytes()
-                .take_while(|b| b.is_ascii_digit())
+                .take_while(u8::is_ascii_digit)
                 .count();
             let (reps, component_str) =
                 if digit_count > 0 && component_str.as_bytes().get(digit_count) == Some(&b'*') {
@@ -67,6 +67,12 @@ impl FromStrWithContext for HydrogensSubLayer {
                     ))?;
                 components.push(component.clone());
             }
+        }
+
+        if subformulas.next().is_some() {
+            return Err(Error::FormulaAndConnectionLayerMixtureMismatch(
+                context.number_of_mixtures(),
+            ));
         }
 
         Ok(HydrogensSubLayer { components })
@@ -119,11 +125,11 @@ mod tests {
         // h7-10H → atoms 7-10 each have 1 fixed H
         let result = parse("h7-10H", "C10H22").unwrap();
         let fh = &result.components[0].fixed_h;
-        for i in 0..6 {
-            assert_eq!(fh[i], 0);
+        for h in &fh[..6] {
+            assert_eq!(*h, 0);
         }
-        for i in 6..10 {
-            assert_eq!(fh[i], 1);
+        for h in &fh[6..10] {
+            assert_eq!(*h, 1);
         }
     }
 

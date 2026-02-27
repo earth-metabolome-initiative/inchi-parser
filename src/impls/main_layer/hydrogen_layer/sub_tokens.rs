@@ -6,7 +6,7 @@ use crate::{errors::HydrogenLayerTokenError, traits::IndexLike};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 /// Enum representing the elemental tokens that compose a hydrogen layer.
-pub enum HydogenLayerSubTokens<Idx> {
+pub enum HydrogenLayerSubTokens<Idx> {
     /// Index token.
     Index(Idx),
     /// A range of atoms (indices separated by a dash)
@@ -29,10 +29,10 @@ pub enum HydogenLayerSubTokens<Idx> {
     Asterisk(u8),
 }
 
-impl<Idx: Display> Display for HydogenLayerSubTokens<Idx> {
+impl<Idx: Display> Display for HydrogenLayerSubTokens<Idx> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            HydogenLayerSubTokens::SharedHydrogens { count, charged } => {
+            HydrogenLayerSubTokens::SharedHydrogens { count, charged } => {
                 write!(f, "(H")?;
                 if *count != 1 {
                     write!(f, "{count}")?;
@@ -42,20 +42,20 @@ impl<Idx: Display> Display for HydogenLayerSubTokens<Idx> {
                 }
                 Ok(())
             }
-            HydogenLayerSubTokens::CloseParenthesis => write!(f, ")"),
-            HydogenLayerSubTokens::Comma => write!(f, ","),
-            HydogenLayerSubTokens::Range((start_idx, end_idx)) => {
+            HydrogenLayerSubTokens::CloseParenthesis => write!(f, ")"),
+            HydrogenLayerSubTokens::Comma => write!(f, ","),
+            HydrogenLayerSubTokens::Range((start_idx, end_idx)) => {
                 write!(f, "{start_idx}-{end_idx}")
             }
-            HydogenLayerSubTokens::Index(idx) => write!(f, "{idx}"),
-            HydogenLayerSubTokens::H(count) => {
+            HydrogenLayerSubTokens::Index(idx) => write!(f, "{idx}"),
+            HydrogenLayerSubTokens::H(count) => {
                 if *count == 1 {
                     write!(f, "H")
                 } else {
-                    write!(f, "H{}", count)
+                    write!(f, "H{count}")
                 }
             }
-            HydogenLayerSubTokens::Asterisk(counter) => write!(f, "{counter}*"),
+            HydrogenLayerSubTokens::Asterisk(counter) => write!(f, "{counter}*"),
         }
     }
 }
@@ -79,7 +79,7 @@ impl<'a, Idx> From<&'a str> for HydrogenLayerSubTokenIter<'a, Idx> {
     }
 }
 
-impl<'a, Idx: IndexLike> HydrogenLayerSubTokenIter<'a, Idx> {
+impl<Idx: IndexLike> HydrogenLayerSubTokenIter<'_, Idx> {
     /// Returns whether the next character is a digit.
     pub fn peek_is_digit(&mut self) -> Option<bool> {
         Some(self.chars.peek()?.is_ascii_digit())
@@ -113,7 +113,7 @@ impl<Idx: IndexLike> Iterator for HydrogenLayerSubTokenIter<'_, Idx>
 where
     u8: TryFrom<Idx, Error = core::num::TryFromIntError>,
 {
-    type Item = Result<HydogenLayerSubTokens<Idx>, HydrogenLayerTokenError<Idx>>;
+    type Item = Result<HydrogenLayerSubTokens<Idx>, HydrogenLayerTokenError<Idx>>;
 
     fn next(&mut self) -> Option<Self::Item> {
         // Handle digits first (atom index, range start, or repetition count)
@@ -136,15 +136,15 @@ where
                         return Some(Err(HydrogenLayerTokenError::InvalidCharacter('-')));
                     }
                 };
-                return Some(Ok(HydogenLayerSubTokens::Range((n, m))));
+                return Some(Ok(HydrogenLayerSubTokens::Range((n, m))));
             }
             if self.consume_asterisk() {
                 return Some(match u8::try_from(n) {
-                    Ok(count) => Ok(HydogenLayerSubTokens::Asterisk(count)),
+                    Ok(count) => Ok(HydrogenLayerSubTokens::Asterisk(count)),
                     Err(e) => Err(HydrogenLayerTokenError::TryFromIntError(e)),
                 });
             }
-            return Some(Ok(HydogenLayerSubTokens::Index(n)));
+            return Some(Ok(HydrogenLayerSubTokens::Index(n)));
         }
 
         // Handle 'H' (fixed hydrogen marker, always outside parentheses at this point)
@@ -155,7 +155,7 @@ where
                 Some(Err(e)) => return Some(Err(HydrogenLayerTokenError::NumericError(e))),
                 None => 1,
             };
-            return Some(Ok(HydogenLayerSubTokens::H(count)));
+            return Some(Ok(HydrogenLayerSubTokens::H(count)));
         }
 
         // Handle other characters
@@ -191,16 +191,16 @@ where
                     }
                 }
                 self.in_parenthesis = true;
-                Some(Ok(HydogenLayerSubTokens::SharedHydrogens { count, charged }))
+                Some(Ok(HydrogenLayerSubTokens::SharedHydrogens { count, charged }))
             }
             ')' => {
                 if !self.in_parenthesis {
                     return Some(Err(HydrogenLayerTokenError::InvalidCharacter(')')));
                 }
                 self.in_parenthesis = false;
-                Some(Ok(HydogenLayerSubTokens::CloseParenthesis))
+                Some(Ok(HydrogenLayerSubTokens::CloseParenthesis))
             }
-            ',' => Some(Ok(HydogenLayerSubTokens::Comma)),
+            ',' => Some(Ok(HydrogenLayerSubTokens::Comma)),
             c => Some(Err(HydrogenLayerTokenError::InvalidCharacter(c))),
         }
     }

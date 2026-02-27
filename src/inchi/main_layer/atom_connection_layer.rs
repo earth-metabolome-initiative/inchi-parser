@@ -4,7 +4,7 @@ use alloc::vec::Vec;
 
 use geometric_traits::prelude::*;
 
-use crate::traits::{IndexLike, prefix::Prefix};
+use crate::traits::prefix::Prefix;
 /// A molecular graph that is undirected.
 pub type MolecularGraph<Idx> = GenericGraph<Idx, SymmetricCSR2D<CSR2D<Idx, Idx, Idx>>>;
 
