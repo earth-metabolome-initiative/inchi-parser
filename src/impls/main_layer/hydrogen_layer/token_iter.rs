@@ -1,7 +1,6 @@
 //! Component-level parser for the hydrogen layer.
 
 use alloc::vec::Vec;
-use molecular_formulas::errors::NumericError;
 
 use crate::{
     errors::HydrogenLayerTokenError,
@@ -20,9 +19,7 @@ fn validate_atom_index<Idx: IndexLike>(
     if idx < Idx::ONE {
         return Err(HydrogenLayerTokenError::ZeroAtomIndex);
     }
-    let Some(zero_based) = (idx - Idx::ONE).to_usize() else {
-        return Err(HydrogenLayerTokenError::NumericError(NumericError::PositiveOverflow));
-    };
+    let zero_based = (idx - Idx::ONE).as_();
     if zero_based >= num_atoms {
         return Err(HydrogenLayerTokenError::AtomIndexOutOfBounds { index: idx, num_atoms });
     }
