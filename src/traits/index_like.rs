@@ -2,15 +2,14 @@
 
 use core::ops::{AddAssign, SubAssign};
 
-use geometric_traits::traits::IntoUsize;
 use molecular_formulas::NumberLike;
-use num_traits::{Bounded, SaturatingAdd, SaturatingSub, ToPrimitive, Unsigned};
+use num_traits::{AsPrimitive, Bounded, SaturatingAdd, SaturatingSub, ToPrimitive, Unsigned};
 
 /// A trait for types that can be used as indices.
 pub trait IndexLike:
     NumberLike
     + Ord
-    + IntoUsize
+    + AsPrimitive<usize>
     + ToPrimitive
     + SaturatingAdd
     + SaturatingSub
@@ -24,7 +23,7 @@ pub trait IndexLike:
 impl<T> IndexLike for T where
     T: NumberLike
         + Ord
-        + IntoUsize
+        + AsPrimitive<usize>
         + ToPrimitive
         + SaturatingAdd
         + SaturatingSub

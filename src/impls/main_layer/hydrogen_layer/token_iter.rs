@@ -1,6 +1,7 @@
 //! Component-level parser for the hydrogen layer.
 
 use alloc::vec::Vec;
+use molecular_formulas::errors::NumericError;
 
 use crate::{
     errors::HydrogenLayerTokenError,
@@ -8,7 +9,7 @@ use crate::{
     traits::IndexLike,
 };
 
-use super::sub_tokens::{HydrogenLayerSubTokens, HydrogenLayerSubTokenIter};
+use super::sub_tokens::{HydrogenLayerSubTokenIter, HydrogenLayerSubTokens};
 
 /// Validates a 1-based atom index and converts it to 0-based, checking both
 /// for zero (InChI indices start at 1) and for exceeding `num_atoms`.
@@ -19,12 +20,11 @@ fn validate_atom_index<Idx: IndexLike>(
     if idx < Idx::ONE {
         return Err(HydrogenLayerTokenError::ZeroAtomIndex);
     }
-    let zero_based = (idx - Idx::ONE).into_usize();
+    let Some(zero_based) = (idx - Idx::ONE).to_usize() else {
+        return Err(HydrogenLayerTokenError::NumericError(NumericError::PositiveOverflow));
+    };
     if zero_based >= num_atoms {
-        return Err(HydrogenLayerTokenError::AtomIndexOutOfBounds {
-            index: idx,
-            num_atoms,
-        });
+        return Err(HydrogenLayerTokenError::AtomIndexOutOfBounds { index: idx, num_atoms });
     }
     Ok(zero_based)
 }
@@ -71,10 +71,7 @@ where
                 HydrogenLayerSubTokens::CloseParenthesis => {
                     // Convert 1-based to 0-based and emit the group
                     // (indices already validated above)
-                    let atoms = mobile_atoms
-                        .drain(..)
-                        .map(|a| a - Idx::ONE)
-                        .collect();
+                    let atoms = mobile_atoms.drain(..).map(|a| a - Idx::ONE).collect();
                     mobile_groups.push(MobileHydrogenGroup {
                         count: mobile_count,
                         charged: mobile_charged,
@@ -156,9 +153,9 @@ where
 
     // Pending atoms without a following H token
     if let Some(&last) = atom_buf.last() {
-        return Err(HydrogenLayerTokenError::UnexpectedEndOfInput(
-            HydrogenLayerSubTokens::Index(last),
-        ));
+        return Err(HydrogenLayerTokenError::UnexpectedEndOfInput(HydrogenLayerSubTokens::Index(
+            last,
+        )));
     }
 
     Ok(HydrogenComponent { fixed_h, mobile_groups })
