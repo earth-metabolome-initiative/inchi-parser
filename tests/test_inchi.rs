@@ -180,3 +180,48 @@ fn test_no_charge_layer() {
     let inchi: InChI = "InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3".parse().unwrap();
     assert_eq!(inchi.charges(), None);
 }
+
+#[test]
+fn test_proton_layer_nacl() {
+    // InChI=1S/ClH.Na/h1H;/q;+1/p-1
+    let inchi: InChI = "InChI=1S/ClH.Na/h1H;/q;+1/p-1".parse().unwrap();
+    assert_eq!(inchi.proton_count(), Some(-1));
+}
+
+#[test]
+fn test_proton_layer_fluorosulfonate() {
+    // InChI=1S/FHO3S/c1-5(2,3)4/h(H,2,3,4)/p-1
+    let inchi: InChI = "InChI=1S/FHO3S/c1-5(2,3)4/h(H,2,3,4)/p-1".parse().unwrap();
+    assert_eq!(inchi.proton_count(), Some(-1));
+}
+
+#[test]
+fn test_proton_layer_nickel_complex() {
+    // The Ni porphyrin complex: .../q;+2/p-2/...
+    let inchi: InChI = INCHI_TEST[4].parse().unwrap();
+    assert_eq!(inchi.proton_count(), Some(-2));
+}
+
+#[test]
+fn test_no_proton_layer() {
+    // Plain ethanol has no /p layer
+    let inchi: InChI = "InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3".parse().unwrap();
+    assert_eq!(inchi.proton_count(), None);
+}
+
+#[test]
+fn test_proton_layer_between_charge_and_stereo() {
+    // Na phosphonate salt: /q;+1/p-1/t13-;/m1./s1
+    // Verifies /p is correctly parsed when sandwiched between /q and stereo layers
+    let inchi: InChI = "InChI=1S/C20H18F3N4O8P.Na/c1-11(28)35-36(31,32)27(16-4-7-33-24-16)10-13-9-26(20(30)34-13)15-8-14(21)19(18(23)17(15)22)25-5-2-12(29)3-6-25;/h2,4-5,7-8,13H,3,6,9-10H2,1H3,(H,31,32);/q;+1/p-1/t13-;/m1./s1".parse().unwrap();
+    assert_eq!(inchi.charges(), Some([0i16, 1].as_slice()));
+    assert_eq!(inchi.proton_count(), Some(-1));
+}
+
+#[test]
+fn test_proton_without_charge_layer() {
+    // Fluorosulfonate has /p but no /q
+    let inchi: InChI = "InChI=1S/FHO3S/c1-5(2,3)4/h(H,2,3,4)/p-1".parse().unwrap();
+    assert_eq!(inchi.charges(), None);
+    assert_eq!(inchi.proton_count(), Some(-1));
+}
