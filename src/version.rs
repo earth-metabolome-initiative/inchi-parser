@@ -10,10 +10,7 @@ pub trait Version: Default + Debug + PartialEq + Eq {
 #[derive(Default, Debug, PartialEq, Eq)]
 pub struct StandardVersion1_07_4;
 
-#[expect(
-    dead_code,
-    reason = "non-standard InChI version support is not wired into the public API yet"
-)]
+#[allow(dead_code)]
 #[derive(Default, Debug, PartialEq, Eq)]
 pub struct Version1_07_4;
 
