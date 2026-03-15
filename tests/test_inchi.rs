@@ -147,5 +147,36 @@ fn test_inchi_parsing() {
             }
         }
     }
-    println!("Parsed {parsed}/{} InChI strings ({proton_only} proton-only skipped).", INCHI_TEST.len());
+    println!(
+        "Parsed {parsed}/{} InChI strings ({proton_only} proton-only skipped).",
+        INCHI_TEST.len()
+    );
+}
+
+#[test]
+fn test_charge_layer_oxide_anion() {
+    // InChI=1S/O/q-2
+    let inchi: InChI = "InChI=1S/O/q-2".parse().unwrap();
+    assert_eq!(inchi.charges(), Some([-2i16].as_slice()));
+}
+
+#[test]
+fn test_charge_layer_nacl() {
+    // InChI=1S/ClH.Na/h1H;/q;+1/p-1
+    let inchi: InChI = "InChI=1S/ClH.Na/h1H;/q;+1/p-1".parse().unwrap();
+    assert_eq!(inchi.charges(), Some([0i16, 1].as_slice()));
+}
+
+#[test]
+fn test_charge_layer_nickel_complex() {
+    // The Ni porphyrin complex: .../q;+2/p-2/...
+    let inchi: InChI = INCHI_TEST[4].parse().unwrap();
+    assert_eq!(inchi.charges(), Some([0i16, 2].as_slice()));
+}
+
+#[test]
+fn test_no_charge_layer() {
+    // Plain ethanol has no /q layer
+    let inchi: InChI = "InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3".parse().unwrap();
+    assert_eq!(inchi.charges(), None);
 }
