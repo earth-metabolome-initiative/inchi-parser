@@ -19,6 +19,14 @@ use crate::{
 };
 
 impl<V: Version> InChI<V> {
+    /// Returns the main layer (formula, connections, hydrogens), if present.
+    ///
+    /// Proton-only InChIs (e.g. `InChI=1S/p+1`) have no main layer.
+    #[must_use]
+    pub fn main_layer(&self) -> Option<&MainLayer> {
+        self.main_layer.as_ref()
+    }
+
     /// Returns the per-component charges from the `/q` layer, if present.
     #[must_use]
     pub fn charges(&self) -> Option<&[i16]> {
@@ -47,7 +55,7 @@ impl<V: Version> InChI<V> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// The InChI structure
 pub struct InChI<V: Version = crate::version::StandardVersion1_07_4> {
-    pub(crate) main_layer: MainLayer,
+    pub(crate) main_layer: Option<MainLayer>,
     pub(crate) charge: Option<ChargeSubLayer>,
     pub(crate) proton: Option<ProtonSublayer>,
     pub(crate) stereochemistry: Option<StereochemistryLayer>,

@@ -50,9 +50,6 @@ pub enum Error<Idx> {
     /// Unrecognized layer prefix character after the main layer
     #[error("Unrecognized layer prefix: '{0}'")]
     UnrecognizedLayerPrefix(char),
-    /// TODO! TEMPORARY ERROR TO REMOVE!
-    #[error("Unimplemented feature: {0}")]
-    UnimplementedFeature(&'static str),
 }
 
 /// Errors that can occur while tokenizing the atom connection layer.

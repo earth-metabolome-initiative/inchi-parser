@@ -1,9 +1,6 @@
 //! InChI parsing integration tests.
 
-use inchi_parser::{
-    errors::Error,
-    inchi::{InChI, stereochemistry_layer::StereoParity},
-};
+use inchi_parser::inchi::{InChI, stereochemistry_layer::StereoParity};
 
 const INCHI_TEST: &[&str] = &[
     "InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3",
@@ -133,27 +130,11 @@ const INCHI_TEST: &[&str] = &[
 
 #[test]
 fn test_inchi_parsing() {
-    let mut parsed = 0usize;
-    let mut proton_only = 0usize;
     for (i, &inchi_str) in INCHI_TEST.iter().enumerate() {
-        match inchi_str.parse::<InChI>() {
-            Ok(_) => {
-                parsed += 1;
-            }
-            Err(Error::UnimplementedFeature(msg)) if msg.contains("Proton-only") => {
-                // Proton-only InChIs (e.g. "InChI=1S/p+1") are expected to be
-                // unimplemented for now.
-                proton_only += 1;
-            }
-            Err(e) => {
-                panic!("{i}) Failed to parse InChI {inchi_str}: {e:?}");
-            }
+        if let Err(e) = inchi_str.parse::<InChI>() {
+            panic!("{i}) Failed to parse InChI {inchi_str}: {e:?}");
         }
     }
-    println!(
-        "Parsed {parsed}/{} InChI strings ({proton_only} proton-only skipped).",
-        INCHI_TEST.len()
-    );
 }
 
 #[test]
@@ -585,4 +566,69 @@ fn test_stereo_insulin_many_centers() {
     let last = tet.components()[0].last().unwrap();
     assert_eq!(last.atom(), 215); // t216- → 0-based 215
     assert_eq!(last.parity(), StereoParity::Minus);
+}
+
+// --- Proton-only InChI tests ---
+
+#[test]
+fn test_proton_only_simple() {
+    let inchi: InChI = "InChI=1S/p+1".parse().unwrap();
+    assert!(inchi.main_layer().is_none());
+    assert_eq!(inchi.proton_count(), Some(1));
+    assert!(inchi.isotope().is_none());
+    assert!(inchi.charges().is_none());
+    assert!(inchi.stereochemistry().is_none());
+}
+
+#[test]
+fn test_proton_only_count_3() {
+    let inchi: InChI = "InChI=1S/p+3".parse().unwrap();
+    assert!(inchi.main_layer().is_none());
+    assert_eq!(inchi.proton_count(), Some(3));
+}
+
+#[test]
+fn test_proton_only_isotope_deuterium() {
+    let inchi: InChI = "InChI=1S/p+1/i/hD".parse().unwrap();
+    assert!(inchi.main_layer().is_none());
+    assert_eq!(inchi.proton_count(), Some(1));
+    let iso = inchi.isotope().expect("isotope layer should be present");
+    assert_eq!(iso.components().len(), 1);
+    assert!(iso.components()[0].atoms().is_empty());
+    assert_eq!(iso.components()[0].hydrogens().len(), 1);
+    assert_eq!(
+        iso.components()[0].hydrogens()[0].isotope(),
+        elements_rs::isotopes::HydrogenIsotope::D
+    );
+    assert_eq!(iso.components()[0].hydrogens()[0].count(), 1);
+}
+
+#[test]
+fn test_proton_only_isotope_tritium() {
+    let inchi: InChI = "InChI=1S/p+1/i/hT".parse().unwrap();
+    assert!(inchi.main_layer().is_none());
+    assert_eq!(inchi.proton_count(), Some(1));
+    let iso = inchi.isotope().expect("isotope layer should be present");
+    assert_eq!(
+        iso.components()[0].hydrogens()[0].isotope(),
+        elements_rs::isotopes::HydrogenIsotope::T
+    );
+}
+
+#[test]
+fn test_proton_only_isotope_protium() {
+    let inchi: InChI = "InChI=1S/p+1/i/hH".parse().unwrap();
+    assert!(inchi.main_layer().is_none());
+    assert_eq!(inchi.proton_count(), Some(1));
+    let iso = inchi.isotope().expect("isotope layer should be present");
+    assert_eq!(
+        iso.components()[0].hydrogens()[0].isotope(),
+        elements_rs::isotopes::HydrogenIsotope::H1
+    );
+}
+
+#[test]
+fn test_normal_inchi_has_main_layer() {
+    let inchi: InChI = "InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3".parse().unwrap();
+    assert!(inchi.main_layer().is_some());
 }
