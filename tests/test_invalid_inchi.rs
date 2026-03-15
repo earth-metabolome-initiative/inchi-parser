@@ -122,7 +122,7 @@ fn test_unrecognized_layer_prefix() {
 #[test]
 fn test_valid_unimplemented_layers_still_parse() {
     // InChI with charge and stereo layers should parse without error.
-    let inchi_str = "InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3/q+1/b2-3";
+    let inchi_str = "InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3/q+1/b2-3+";
     let result = inchi_str.parse::<InChI>();
     assert!(result.is_ok(), "Known layers after main layer should be accepted: {result:?}");
 }
