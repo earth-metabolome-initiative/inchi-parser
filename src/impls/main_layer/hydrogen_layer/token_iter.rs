@@ -48,7 +48,7 @@ where
     // Mobile-group state
     let mut in_mobile = false;
     let mut mobile_count = 0u8;
-    let mut mobile_charged = false;
+    let mut mobile_negative_count = 0u8;
     let mut mobile_atoms: Vec<Idx> = Vec::new();
 
     let iter = HydrogenLayerSubTokenIter::<Idx>::from(input);
@@ -71,7 +71,7 @@ where
                     let atoms = mobile_atoms.drain(..).map(|a| a - Idx::ONE).collect();
                     mobile_groups.push(MobileHydrogenGroup {
                         count: mobile_count,
-                        charged: mobile_charged,
+                        negative_count: mobile_negative_count,
                         atoms,
                     });
                     in_mobile = false;
@@ -123,11 +123,11 @@ where
                         fixed_h[zero_based] = count;
                     }
                 }
-                HydrogenLayerSubTokens::SharedHydrogens { count, charged } => {
+                HydrogenLayerSubTokens::SharedHydrogens { count, negative_count } => {
                     // Start a new mobile group
                     in_mobile = true;
                     mobile_count = count;
-                    mobile_charged = charged;
+                    mobile_negative_count = negative_count;
                     mobile_atoms.clear();
                 }
                 HydrogenLayerSubTokens::CloseParenthesis => {

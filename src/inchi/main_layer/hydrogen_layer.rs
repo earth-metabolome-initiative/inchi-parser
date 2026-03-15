@@ -9,8 +9,8 @@ use crate::traits::prefix::Prefix;
 pub(crate) struct MobileHydrogenGroup<Idx = u16> {
     /// Number of mobile hydrogens in this group.
     pub(crate) count: u8,
-    /// Whether these are charged mobile hydrogens (H⁻, from `(H-,...)`).
-    pub(crate) charged: bool,
+    /// Number of mobile negative charges (from `(HN-M,...)`). 0 means neutral.
+    pub(crate) negative_count: u8,
     /// Zero-based atom indices that are possible protonation sites.
     pub(crate) atoms: Vec<Idx>,
 }

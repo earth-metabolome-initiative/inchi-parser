@@ -15,14 +15,14 @@ pub enum HydrogenLayerSubTokens<Idx> {
     Comma,
     /// The 'H' letter with an optional count (default 1).
     H(u8),
-    /// Mobile group opener: `(H`, `(H2`, or `(H-`. Includes the consumed `(`,
-    /// `H`, optional count, optional charge marker, and the mandatory `,`
+    /// Mobile group opener: `(HN-M,...)`. Includes the consumed `(`,
+    /// `H`, optional count, optional negative count, and the mandatory `,`
     /// that follows.
     SharedHydrogens {
         /// Number of mobile hydrogens (1 if omitted).
         count: u8,
-        /// `true` for `(H-,...)` charged mobile hydrogen (H⁻).
-        charged: bool,
+        /// Number of mobile negative charges (0 if no `-`).
+        negative_count: u8,
     },
     /// Close parenthesis token: `)`.
     CloseParenthesis,
@@ -33,13 +33,15 @@ pub enum HydrogenLayerSubTokens<Idx> {
 impl<Idx: Display> Display for HydrogenLayerSubTokens<Idx> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            HydrogenLayerSubTokens::SharedHydrogens { count, charged } => {
+            HydrogenLayerSubTokens::SharedHydrogens { count, negative_count } => {
                 write!(f, "(H")?;
                 if *count != 1 {
                     write!(f, "{count}")?;
                 }
-                if *charged {
-                    write!(f, "-")?;
+                match *negative_count {
+                    0 => {}
+                    1 => write!(f, "-")?,
+                    n => write!(f, "-{n}")?,
                 }
                 Ok(())
             }
@@ -176,12 +178,18 @@ where
                     Some(Err(e)) => return Some(Err(HydrogenLayerTokenError::NumericError(e))),
                     None => 1,
                 };
-                // Check for '-' (charged H⁻ marker)
-                let charged = if self.chars.peek() == Some(&'-') {
+                // Check for '-' (negative charge marker) with optional count
+                let negative_count = if self.chars.peek() == Some(&'-') {
                     self.chars.next();
-                    true
+                    match try_fold_number::<u8, BaselineDigit, _>(&mut self.chars) {
+                        Some(Ok(n)) => n,
+                        Some(Err(e)) => {
+                            return Some(Err(HydrogenLayerTokenError::NumericError(e)));
+                        }
+                        None => 1, // bare `-` defaults to 1
+                    }
                 } else {
-                    false
+                    0
                 };
                 // Expect ',' after the header
                 match self.chars.next() {
@@ -192,7 +200,7 @@ where
                     }
                 }
                 self.in_parenthesis = true;
-                Some(Ok(HydrogenLayerSubTokens::SharedHydrogens { count, charged }))
+                Some(Ok(HydrogenLayerSubTokens::SharedHydrogens { count, negative_count }))
             }
             ')' => {
                 if !self.in_parenthesis {
