@@ -23,8 +23,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use serde::Deserialize;
 
 /// The URL for the PubChem CID-InChI-Key gzipped file.
-const PUBCHEM_URL: &str =
-    "https://ftp.ncbi.nlm.nih.gov/pubchem/Compound/Extras/CID-InChI-Key.gz";
+const PUBCHEM_URL: &str = "https://ftp.ncbi.nlm.nih.gov/pubchem/Compound/Extras/CID-InChI-Key.gz";
 
 /// Local file name for the downloaded PubChem data.
 const PUBCHEM_FILE: &str = "tests/CID-InChI-Key.gz";
@@ -87,10 +86,8 @@ fn validate_pubchem_inchi(file_path: &Path) -> Result<(), Box<dyn std::error::Er
     let decoder = GzDecoder::new(file);
     let reader = BufReader::new(decoder);
 
-    let mut csv_reader = ReaderBuilder::new()
-        .delimiter(b'\t')
-        .has_headers(false)
-        .from_reader(reader);
+    let mut csv_reader =
+        ReaderBuilder::new().delimiter(b'\t').has_headers(false).from_reader(reader);
 
     // Estimated count based on recent PubChem data
     let pb = ProgressBar::new(123_000_000);
@@ -150,10 +147,7 @@ fn validate_pubchem_inchi(file_path: &Path) -> Result<(), Box<dyn std::error::Er
             writeln!(file)?;
         }
 
-        println!(
-            "Wrote {} error types to failed_inchis.txt",
-            error_examples.len()
-        );
+        println!("Wrote {} error types to failed_inchis.txt", error_examples.len());
     }
 
     Ok(())

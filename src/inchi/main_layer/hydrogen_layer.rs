@@ -19,7 +19,8 @@ pub(crate) struct MobileHydrogenGroup<Idx = u16> {
 ///
 /// `fixed_h[i]` is indexed by **0-based atom index** within this component.
 /// The value is the number of fixed hydrogens on atom `i`.
-/// `0` means "not mentioned in `/h`" — atoms with 0 H are absent from the layer.
+/// `0` means "not mentioned in `/h`" — atoms with 0 H are absent from the
+/// layer.
 ///
 /// The value type is `u8` because it is a **hydrogen count** (always 0–8),
 /// not an atom index.
@@ -32,10 +33,12 @@ pub(crate) struct HydrogenComponent<Idx = u16> {
     pub(crate) mobile_groups: Vec<MobileHydrogenGroup<Idx>>,
 }
 
-/// The parsed hydrogen sublayer: one `HydrogenComponent` per `;`-delimited fragment.
+/// The parsed hydrogen sublayer: one `HydrogenComponent` per `;`-delimited
+/// fragment.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct HydrogensSubLayer {
-    /// Per-fragment hydrogen data, in the same order as formula/connection layer components.
+    /// Per-fragment hydrogen data, in the same order as formula/connection
+    /// layer components.
     pub(crate) components: Vec<HydrogenComponent>,
 }
 

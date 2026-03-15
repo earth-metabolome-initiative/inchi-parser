@@ -2,6 +2,8 @@ use molecular_formulas::{InChIFormula, MolecularFormula};
 pub(crate) mod sub_tokens;
 mod token_iter;
 
+use token_iter::parse_component;
+
 use crate::{
     errors::Error,
     inchi::main_layer::HydrogensSubLayer,
@@ -10,8 +12,6 @@ use crate::{
         prefix::Prefix,
     },
 };
-
-use token_iter::parse_component;
 
 impl FromStrWithContext for HydrogensSubLayer {
     type Context<'a> = &'a InChIFormula;
@@ -22,9 +22,7 @@ impl FromStrWithContext for HydrogensSubLayer {
         input: Self::Input<'_>,
         context: Self::Context<'_>,
     ) -> Result<Self, Error<Self::Idx>> {
-        let s = input
-            .strip_prefix(Self::PREFIX)
-            .ok_or(Error::WrongPrefix)?;
+        let s = input.strip_prefix(Self::PREFIX).ok_or(Error::WrongPrefix)?;
 
         let mut subformulas = context.subformulas();
         let mut components = alloc::vec::Vec::with_capacity(context.number_of_mixtures());
@@ -32,26 +30,21 @@ impl FromStrWithContext for HydrogensSubLayer {
         for component_str in s.split(';') {
             // Detect optional n* repetition prefix (e.g. "2*1H" → reps=2, rest="1H").
             // The prefix is purely ASCII digits followed by '*', so we can scan bytes.
-            let digit_count = component_str
-                .bytes()
-                .take_while(u8::is_ascii_digit)
-                .count();
+            let digit_count = component_str.bytes().take_while(u8::is_ascii_digit).count();
             let (reps, component_str) =
                 if digit_count > 0 && component_str.as_bytes().get(digit_count) == Some(&b'*') {
-                    component_str[..digit_count].parse::<u32>().ok().map_or(
-                        (1u32, component_str),
-                        |n| (n, &component_str[digit_count + 1..]),
-                    )
+                    component_str[..digit_count]
+                        .parse::<u32>()
+                        .ok()
+                        .map_or((1u32, component_str), |n| (n, &component_str[digit_count + 1..]))
                 } else {
                     (1u32, component_str)
                 };
 
             // Consume one subformula from context for the first occurrence
-            let sf = subformulas
-                .next()
-                .ok_or(Error::FormulaAndConnectionLayerMixtureMismatch(
-                    context.number_of_mixtures(),
-                ))?;
+            let sf = subformulas.next().ok_or(Error::FormulaAndConnectionLayerMixtureMismatch(
+                context.number_of_mixtures(),
+            ))?;
             let num_atoms = sf.number_of_non_hydrogens();
 
             // Parse the component
@@ -60,11 +53,9 @@ impl FromStrWithContext for HydrogensSubLayer {
             // Push the first occurrence then n-1 clones for repeated fragments
             components.push(component.clone());
             for _ in 1..reps {
-                subformulas
-                    .next()
-                    .ok_or(Error::FormulaAndConnectionLayerMixtureMismatch(
-                        context.number_of_mixtures(),
-                    ))?;
+                subformulas.next().ok_or(Error::FormulaAndConnectionLayerMixtureMismatch(
+                    context.number_of_mixtures(),
+                ))?;
                 components.push(component.clone());
             }
         }
@@ -217,5 +208,4 @@ mod tests {
             Error::HydrogenLayerTokenError(HydrogenLayerTokenError::InvalidCharacter('X'))
         ));
     }
-
 }

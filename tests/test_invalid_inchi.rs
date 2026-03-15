@@ -39,12 +39,7 @@ fn test_formula_only_inchi() {
 fn test_not_hill_sorted() {
     let inchi_str = "InChI=1S/C2OH6/";
     let result = inchi_str.parse::<InChI>();
-    assert!(matches!(
-        result,
-        Err(Error::MolecularFormulaParserError(
-            ParserError::NotHillOrdered
-        ))
-    ));
+    assert!(matches!(result, Err(Error::MolecularFormulaParserError(ParserError::NotHillOrdered))));
 }
 
 #[test]
@@ -64,10 +59,7 @@ fn test_self_loop_comma() {
     // through a comma-separated branch.
     let inchi_str = "InChI=1S/C16H25NS/c1-12(2)13-7-5-8-15(3)9-6-10-16(4,16(13)15)17-11-18/h13-14H,1,5-10H2,2-4H3/t13-,14-,15+,16-/m1/s1";
     let result = inchi_str.parse::<InChI>();
-    assert!(
-        result.is_ok(),
-        "Known limitation: self-loop via branch not yet detected: {result:?}"
-    );
+    assert!(result.is_ok(), "Known limitation: self-loop via branch not yet detected: {result:?}");
 }
 
 #[test]
@@ -76,9 +68,7 @@ fn test_self_loop_dash() {
     let result = inchi_str.parse::<InChI>();
     assert_eq!(
         result,
-        Err(Error::AtomConnectionTokenError(
-            AtomConnectionTokenError::SelfLoopDetected(5)
-        ))
+        Err(Error::AtomConnectionTokenError(AtomConnectionTokenError::SelfLoopDetected(5)))
     );
 }
 
@@ -92,9 +82,7 @@ fn test_self_loop_parenthesis() {
     let result = inchi_str.parse::<InChI>();
     assert_eq!(
         result,
-        Err(Error::AtomConnectionTokenError(
-            AtomConnectionTokenError::SelfLoopDetected(5)
-        ))
+        Err(Error::AtomConnectionTokenError(AtomConnectionTokenError::SelfLoopDetected(5)))
     );
 }
 
@@ -105,12 +93,10 @@ fn test_h_layer_out_of_bounds_atom_index() {
     let result = inchi_str.parse::<InChI>();
     assert_eq!(
         result,
-        Err(Error::HydrogenLayerTokenError(
-            HydrogenLayerTokenError::AtomIndexOutOfBounds {
-                index: 4,
-                num_atoms: 2,
-            }
-        ))
+        Err(Error::HydrogenLayerTokenError(HydrogenLayerTokenError::AtomIndexOutOfBounds {
+            index: 4,
+            num_atoms: 2,
+        }))
     );
 }
 
@@ -121,9 +107,7 @@ fn test_h_layer_reversed_range() {
     let result = inchi_str.parse::<InChI>();
     assert_eq!(
         result,
-        Err(Error::HydrogenLayerTokenError(
-            HydrogenLayerTokenError::InvalidRange(5, 3)
-        ))
+        Err(Error::HydrogenLayerTokenError(HydrogenLayerTokenError::InvalidRange(5, 3)))
     );
 }
 
@@ -140,10 +124,7 @@ fn test_valid_unimplemented_layers_still_parse() {
     // InChI with charge and stereo layers should parse without error.
     let inchi_str = "InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3/q+1/b2-3";
     let result = inchi_str.parse::<InChI>();
-    assert!(
-        result.is_ok(),
-        "Known layers after main layer should be accepted: {result:?}"
-    );
+    assert!(result.is_ok(), "Known layers after main layer should be accepted: {result:?}");
 }
 
 #[test]
@@ -152,10 +133,7 @@ fn test_formula_more_components_than_h_layer() {
     let inchi_str = "InChI=1S/CH4.C2H6/h1H";
     let result = inchi_str.parse::<InChI>();
     assert!(
-        matches!(
-            result,
-            Err(Error::FormulaAndConnectionLayerMixtureMismatch(_))
-        ),
+        matches!(result, Err(Error::FormulaAndConnectionLayerMixtureMismatch(_))),
         "Should error when formula has more components than /h layer: {result:?}"
     );
 }
