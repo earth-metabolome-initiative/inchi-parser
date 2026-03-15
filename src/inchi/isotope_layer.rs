@@ -6,14 +6,16 @@ use elements_rs::isotopes::HydrogenIsotope;
 
 use crate::traits::prefix::Prefix;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-/// A non-hydrogen atom isotope specification.
+#[derive(Debug, Clone, PartialEq, Eq)]
+/// An atom isotope specification.
 pub struct IsotopeAtom {
     /// 0-based atom index.
     pub(crate) atom_index: u16,
     /// Mass shift relative to the rounded average atomic mass (can be
-    /// negative).
-    pub(crate) mass_shift: i16,
+    /// negative). `None` when only hydrogen isotopes are specified.
+    pub(crate) mass_shift: Option<i16>,
+    /// Per-atom hydrogen isotope designations (e.g. D, T, H1).
+    pub(crate) hydrogen_isotopes: Vec<IsotopeHydrogen>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -48,9 +50,16 @@ impl IsotopeAtom {
     }
 
     /// Returns the mass shift relative to the rounded average atomic mass.
+    /// `None` when only hydrogen isotopes are specified.
     #[must_use]
-    pub fn mass_shift(&self) -> i16 {
+    pub fn mass_shift(&self) -> Option<i16> {
         self.mass_shift
+    }
+
+    /// Returns per-atom hydrogen isotope designations.
+    #[must_use]
+    pub fn hydrogen_isotopes(&self) -> &[IsotopeHydrogen] {
+        &self.hydrogen_isotopes
     }
 }
 

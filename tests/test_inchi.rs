@@ -247,3 +247,29 @@ fn test_no_isotope_layer() {
     let inchi: InChI = "InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3".parse().unwrap();
     assert!(inchi.isotope().is_none());
 }
+
+#[test]
+fn test_h2_formula_parses() {
+    // H2 with h1H — H-only formula
+    let inchi: InChI = "InChI=1S/H2/h1H".parse().unwrap();
+    assert!(inchi.isotope().is_none());
+}
+
+#[test]
+fn test_isotope_zero_mass_shift() {
+    // Rn with i1+0 — zero mass shift
+    let inchi: InChI = "InChI=1S/Rn/i1+0".parse().unwrap();
+    let iso = inchi.isotope().expect("isotope layer should be present");
+    assert_eq!(iso.components()[0].atoms()[0].mass_shift(), Some(0));
+}
+
+#[test]
+fn test_isotope_atom_level_deuterium() {
+    // CH4 with i1D — atom-level deuterium
+    let inchi: InChI = "InChI=1S/CH4/h1H4/i1D".parse().unwrap();
+    let iso = inchi.isotope().expect("isotope layer should be present");
+    let atom = &iso.components()[0].atoms()[0];
+    assert_eq!(atom.mass_shift(), None);
+    assert_eq!(atom.hydrogen_isotopes().len(), 1);
+    assert_eq!(atom.hydrogen_isotopes()[0].isotope(), elements_rs::isotopes::HydrogenIsotope::D);
+}

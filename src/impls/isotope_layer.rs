@@ -5,7 +5,6 @@ use molecular_formulas::{BaselineDigit, InChIFormula, MolecularFormula, try_fold
 
 use crate::{
     errors::Error,
-    impls::charge_layer::parse_charge,
     inchi::isotope_layer::{IsotopeAtom, IsotopeComponent, IsotopeHydrogen, IsotopeLayer},
     traits::{
         parse::{FromStrWithContext, PrefixFromStrWithContext},
@@ -37,7 +36,67 @@ fn parse_h_isotope_segment(s: &str) -> Result<Vec<IsotopeHydrogen>, Error<u16>> 
     Ok(hydrogens)
 }
 
-/// Parses atom isotope specs from a string like `1+1,3+2` or `1-1`.
+/// Parses a mass shift value like `+1`, `-3`, `+0`.
+/// Unlike `parse_charge`, this allows `+0`/`-0`.
+fn parse_mass_shift(
+    chars: &mut core::iter::Peekable<core::str::Chars<'_>>,
+) -> Result<i16, Error<u16>> {
+    let negative = match chars.next() {
+        Some('+') => false,
+        Some('-') => true,
+        Some(c) => return Err(Error::InvalidIsotopeValue(c)),
+        None => return Err(Error::InvalidIsotopeValue('?')),
+    };
+
+    // Handle explicit zero
+    if chars.peek() == Some(&'0') {
+        chars.next();
+        if chars.peek().is_some_and(char::is_ascii_digit) {
+            return Err(Error::InvalidIsotopeValue('0'));
+        }
+        return Ok(0);
+    }
+
+    let Some(Ok(magnitude)) = try_fold_number::<u16, BaselineDigit, _>(chars) else {
+        return Err(Error::InvalidIsotopeValue(if negative { '-' } else { '+' }));
+    };
+
+    if negative {
+        i16::try_from(magnitude).map(|v| -v).or(if magnitude == 32768 {
+            Ok(i16::MIN)
+        } else {
+            Err(Error::InvalidIsotopeValue('-'))
+        })
+    } else {
+        i16::try_from(magnitude).map_err(|_| Error::InvalidIsotopeValue('+'))
+    }
+}
+
+/// Parses inline hydrogen isotope designations (D, T, H with optional count)
+/// from a peekable char iterator.
+fn parse_inline_h_isotopes(
+    chars: &mut core::iter::Peekable<core::str::Chars<'_>>,
+) -> Result<Vec<IsotopeHydrogen>, Error<u16>> {
+    let mut hydrogens = Vec::new();
+    while let Some(&c) = chars.peek() {
+        let isotope = match c {
+            'D' => HydrogenIsotope::D,
+            'T' => HydrogenIsotope::T,
+            'H' => HydrogenIsotope::H1,
+            _ => break,
+        };
+        chars.next();
+        let count = try_fold_number::<u16, BaselineDigit, _>(chars)
+            .transpose()
+            .map_err(|_| Error::InvalidIsotopeValue('0'))?
+            .unwrap_or(1);
+        hydrogens.push(IsotopeHydrogen { isotope, count });
+    }
+    Ok(hydrogens)
+}
+
+/// Parses atom isotope specs from a string like `1+1,3+2`, `1-1`, `1+0`,
+/// `1D`, `1D3`, `4T`, or `1+1D`.
 fn parse_atom_specs(s: &str) -> Result<Vec<IsotopeAtom>, Error<u16>> {
     if s.is_empty() {
         return Ok(Vec::new());
@@ -45,33 +104,43 @@ fn parse_atom_specs(s: &str) -> Result<Vec<IsotopeAtom>, Error<u16>> {
 
     let mut atoms = Vec::new();
     for spec in s.split(',') {
-        // Find the position of the sign character (+/-) that separates index from
-        // shift.
-        let sign_pos = spec.find(['+', '-']).ok_or_else(|| {
-            spec.chars().next().map_or(Error::InvalidIsotopeValue('?'), Error::InvalidIsotopeValue)
-        })?;
-
-        let index_str = &spec[..sign_pos];
-        let shift_str = &spec[sign_pos..];
+        let mut chars = spec.chars().peekable();
 
         // Parse 1-based atom index
-        let mut chars = index_str.chars().peekable();
         let one_based = match try_fold_number::<u16, BaselineDigit, _>(&mut chars) {
             Some(Ok(n)) if n > 0 => n,
             _ => {
-                return Err(Error::InvalidIsotopeValue(index_str.chars().next().unwrap_or('?')));
+                return Err(Error::InvalidIsotopeValue(spec.chars().next().unwrap_or('?')));
             }
         };
-
-        if let Some(&c) = chars.peek() {
-            return Err(Error::InvalidIsotopeValue(c));
-        }
-
         let atom_index = one_based - 1;
 
-        let mass_shift = parse_charge(shift_str)?;
-
-        atoms.push(IsotopeAtom { atom_index, mass_shift });
+        // Determine what follows the atom index
+        match chars.peek() {
+            Some('+' | '-') => {
+                let mass_shift = parse_mass_shift(&mut chars)?;
+                let hydrogen_isotopes = parse_inline_h_isotopes(&mut chars)?;
+                if chars.peek().is_some() {
+                    return Err(Error::InvalidIsotopeValue(*chars.peek().unwrap()));
+                }
+                atoms.push(IsotopeAtom {
+                    atom_index,
+                    mass_shift: Some(mass_shift),
+                    hydrogen_isotopes,
+                });
+            }
+            Some('D' | 'T' | 'H') => {
+                let hydrogen_isotopes = parse_inline_h_isotopes(&mut chars)?;
+                if chars.peek().is_some() {
+                    return Err(Error::InvalidIsotopeValue(*chars.peek().unwrap()));
+                }
+                atoms.push(IsotopeAtom { atom_index, mass_shift: None, hydrogen_isotopes });
+            }
+            Some(&c) => return Err(Error::InvalidIsotopeValue(c)),
+            None => {
+                return Err(Error::InvalidIsotopeValue(spec.chars().next().unwrap_or('?')));
+            }
+        }
     }
 
     Ok(atoms)
@@ -229,7 +298,8 @@ mod tests {
         assert_eq!(result.components.len(), 1);
         assert_eq!(result.components[0].atoms.len(), 1);
         assert_eq!(result.components[0].atoms[0].atom_index, 0);
-        assert_eq!(result.components[0].atoms[0].mass_shift, 1);
+        assert_eq!(result.components[0].atoms[0].mass_shift, Some(1));
+        assert!(result.components[0].atoms[0].hydrogen_isotopes.is_empty());
     }
 
     #[test]
@@ -238,9 +308,9 @@ mod tests {
         let result = parse("i1+1,2-1", None, "C2H6").unwrap();
         assert_eq!(result.components[0].atoms.len(), 2);
         assert_eq!(result.components[0].atoms[0].atom_index, 0);
-        assert_eq!(result.components[0].atoms[0].mass_shift, 1);
+        assert_eq!(result.components[0].atoms[0].mass_shift, Some(1));
         assert_eq!(result.components[0].atoms[1].atom_index, 1);
-        assert_eq!(result.components[0].atoms[1].mass_shift, -1);
+        assert_eq!(result.components[0].atoms[1].mass_shift, Some(-1));
     }
 
     #[test]
@@ -251,7 +321,7 @@ mod tests {
         assert!(result.components[0].atoms.is_empty());
         assert_eq!(result.components[1].atoms.len(), 1);
         assert_eq!(result.components[1].atoms[0].atom_index, 0);
-        assert_eq!(result.components[1].atoms[0].mass_shift, 2);
+        assert_eq!(result.components[1].atoms[0].mass_shift, Some(2));
     }
 
     #[test]
@@ -307,7 +377,7 @@ mod tests {
         assert_eq!(result.components.len(), 1);
         assert_eq!(result.components[0].atoms.len(), 1);
         assert_eq!(result.components[0].atoms[0].atom_index, 0);
-        assert_eq!(result.components[0].atoms[0].mass_shift, 1);
+        assert_eq!(result.components[0].atoms[0].mass_shift, Some(1));
         assert_eq!(result.components[0].hydrogens.len(), 1);
         assert_eq!(result.components[0].hydrogens[0].isotope, HydrogenIsotope::D);
         assert_eq!(result.components[0].hydrogens[0].count, 2);
@@ -341,20 +411,20 @@ mod tests {
         for comp in &result.components {
             assert_eq!(comp.atoms.len(), 1);
             assert_eq!(comp.atoms[0].atom_index, 0);
-            assert_eq!(comp.atoms[0].mass_shift, 1);
+            assert_eq!(comp.atoms[0].mass_shift, Some(1));
         }
     }
 
     #[test]
     fn test_negative_mass_shift() {
         let result = parse("i1-3", None, "CH4").unwrap();
-        assert_eq!(result.components[0].atoms[0].mass_shift, -3);
+        assert_eq!(result.components[0].atoms[0].mass_shift, Some(-3));
     }
 
     #[test]
     fn test_large_mass_shift() {
         let result = parse("i1+100", None, "CH4").unwrap();
-        assert_eq!(result.components[0].atoms[0].mass_shift, 100);
+        assert_eq!(result.components[0].atoms[0].mass_shift, Some(100));
     }
 
     #[test]
@@ -433,9 +503,9 @@ mod tests {
 
     #[test]
     fn test_atom_spec_sign_without_magnitude() {
-        // "i1+" → sign but no digits after it → delegated to parse_charge
+        // "i1+" → sign but no digits after it
         let err = parse("i1+", None, "CH4").unwrap_err();
-        assert!(matches!(err, Error::InvalidChargeValue(_)));
+        assert!(matches!(err, Error::InvalidIsotopeValue(_)));
     }
 
     #[test]
@@ -488,6 +558,100 @@ mod tests {
         assert_eq!(input, "");
         assert!(result.components[0].atoms.is_empty());
         assert!(result.components[0].hydrogens.is_empty());
+    }
+
+    // --- zero mass shift ---
+
+    #[test]
+    fn test_zero_mass_shift() {
+        // i1+0 → atom 0, mass shift 0
+        let result = parse("i1+0", None, "CH4").unwrap();
+        assert_eq!(result.components[0].atoms[0].atom_index, 0);
+        assert_eq!(result.components[0].atoms[0].mass_shift, Some(0));
+        assert!(result.components[0].atoms[0].hydrogen_isotopes.is_empty());
+    }
+
+    #[test]
+    fn test_negative_zero_mass_shift() {
+        let result = parse("i1-0", None, "CH4").unwrap();
+        assert_eq!(result.components[0].atoms[0].mass_shift, Some(0));
+    }
+
+    // --- atom-level hydrogen isotope designations ---
+
+    #[test]
+    fn test_atom_level_deuterium() {
+        // i1D → atom 0, no mass shift, 1 deuterium
+        let result = parse("i1D", None, "CH4").unwrap();
+        let atom = &result.components[0].atoms[0];
+        assert_eq!(atom.atom_index, 0);
+        assert_eq!(atom.mass_shift, None);
+        assert_eq!(atom.hydrogen_isotopes.len(), 1);
+        assert_eq!(atom.hydrogen_isotopes[0].isotope, HydrogenIsotope::D);
+        assert_eq!(atom.hydrogen_isotopes[0].count, 1);
+    }
+
+    #[test]
+    fn test_atom_level_deuterium_count() {
+        // i1D3 → atom 0, no mass shift, 3 deuterium
+        let result = parse("i1D3", None, "CH4").unwrap();
+        let atom = &result.components[0].atoms[0];
+        assert_eq!(atom.mass_shift, None);
+        assert_eq!(atom.hydrogen_isotopes[0].isotope, HydrogenIsotope::D);
+        assert_eq!(atom.hydrogen_isotopes[0].count, 3);
+    }
+
+    #[test]
+    fn test_atom_level_tritium() {
+        // i4T → atom 3, no mass shift, 1 tritium
+        let result = parse("i4T", None, "C4H10").unwrap();
+        let atom = &result.components[0].atoms[0];
+        assert_eq!(atom.atom_index, 3);
+        assert_eq!(atom.mass_shift, None);
+        assert_eq!(atom.hydrogen_isotopes[0].isotope, HydrogenIsotope::T);
+        assert_eq!(atom.hydrogen_isotopes[0].count, 1);
+    }
+
+    #[test]
+    fn test_atom_level_protium() {
+        // i2H3 → atom 1, no mass shift, 3× H1
+        let result = parse("i2H3", None, "C2H6").unwrap();
+        let atom = &result.components[0].atoms[0];
+        assert_eq!(atom.atom_index, 1);
+        assert_eq!(atom.mass_shift, None);
+        assert_eq!(atom.hydrogen_isotopes[0].isotope, HydrogenIsotope::H1);
+        assert_eq!(atom.hydrogen_isotopes[0].count, 3);
+    }
+
+    #[test]
+    fn test_mass_shift_with_inline_deuterium() {
+        // i1+1D → atom 0, mass shift +1, 1 deuterium
+        let result = parse("i1+1D", None, "CH4").unwrap();
+        let atom = &result.components[0].atoms[0];
+        assert_eq!(atom.atom_index, 0);
+        assert_eq!(atom.mass_shift, Some(1));
+        assert_eq!(atom.hydrogen_isotopes.len(), 1);
+        assert_eq!(atom.hydrogen_isotopes[0].isotope, HydrogenIsotope::D);
+        assert_eq!(atom.hydrogen_isotopes[0].count, 1);
+    }
+
+    #[test]
+    fn test_atom_level_h1() {
+        // i1H → atom 0, no mass shift, 1× H1
+        let result = parse("i1H", None, "CH4").unwrap();
+        let atom = &result.components[0].atoms[0];
+        assert_eq!(atom.mass_shift, None);
+        assert_eq!(atom.hydrogen_isotopes[0].isotope, HydrogenIsotope::H1);
+        assert_eq!(atom.hydrogen_isotopes[0].count, 1);
+    }
+
+    #[test]
+    fn test_atom_level_t1() {
+        // i1T → atom 0, no mass shift, 1 tritium
+        let result = parse("i1T", None, "CH4").unwrap();
+        let atom = &result.components[0].atoms[0];
+        assert_eq!(atom.mass_shift, None);
+        assert_eq!(atom.hydrogen_isotopes[0].isotope, HydrogenIsotope::T);
     }
 
     use crate::traits::parse::PrefixFromStrWithContext;
