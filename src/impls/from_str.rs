@@ -2,8 +2,11 @@ use core::str::FromStr;
 
 use crate::{
     errors::Error,
-    inchi::{InChI, MainLayer, proton_layer::ProtonSublayer},
-    traits::{parse::ConsumeStr, prefix::Prefix},
+    inchi::{InChI, MainLayer, charge_layer::ChargeSubLayer, proton_layer::ProtonSublayer},
+    traits::{
+        parse::{ConsumeStr, PrefixFromStrWithContext},
+        prefix::Prefix,
+    },
     version::Version,
 };
 
@@ -23,22 +26,21 @@ impl<V: Version> FromStr for InChI<V> {
 
         // Then we remove the first '/' to get the first layer
         let Some(s) = s.strip_prefix('/') else {
-            return Err(Self::Err::MissingForwardSlash(
-                "Missing chemical formula forward slash",
-            ));
+            return Err(Self::Err::MissingForwardSlash("Missing chemical formula forward slash"));
         };
 
         // If the next token is a lowercase 'p' then this means that we don't have
         // a main layer and we skip it
         if s.starts_with(ProtonSublayer::PREFIX) {
-            return Err(Error::UnimplementedFeature(
-                "Proton-only InChIs not yet supported",
-            ));
+            return Err(Error::UnimplementedFeature("Proton-only InChIs not yet supported"));
         }
 
         // Parse the main layer (formula, connections, hydrogens).
         // Remaining layers after the hydrogen layer are validated but not parsed yet.
-        let (main_layer, layer_remainder) = MainLayer::consume_str(s)?;
+        let (main_layer, mut layer_remainder) = MainLayer::consume_str(s)?;
+
+        let charge =
+            ChargeSubLayer::try_build_layer(&mut layer_remainder, main_layer.chemical_formula())?;
 
         // Validate that every remaining segment starts with a known layer prefix.
         if !layer_remainder.is_empty() {
@@ -54,7 +56,7 @@ impl<V: Version> FromStr for InChI<V> {
 
         Ok(InChI {
             main_layer,
-            charge: None,
+            charge,
             stereochemistry: None,
             isotope: None,
             fixed_hydrogen: None,
