@@ -11,7 +11,7 @@ pub use fixed_hydrogen::FixedHydrogenLayer;
 pub use isotope_layer::IsotopeLayer;
 pub use main_layer::MainLayer;
 pub use reconnected_layer::ReconnectedLayer;
-pub(crate) use stereochemistry_layer::StereochemistryLayer;
+pub use stereochemistry_layer::StereochemistryLayer;
 
 use crate::{
     inchi::{charge_layer::ChargeSubLayer, proton_layer::ProtonSublayer},
@@ -29,6 +29,12 @@ impl<V: Version> InChI<V> {
     #[must_use]
     pub fn proton_count(&self) -> Option<i16> {
         self.proton.as_ref().map(|p| p.proton_count)
+    }
+
+    /// Returns the stereochemistry layer, if present.
+    #[must_use]
+    pub fn stereochemistry(&self) -> Option<&StereochemistryLayer> {
+        self.stereochemistry.as_ref()
     }
 
     /// Returns the isotope layer, if present.

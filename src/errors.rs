@@ -44,6 +44,9 @@ pub enum Error<Idx> {
     /// Invalid isotope specification in the `/i` layer.
     #[error("Invalid isotope value: '{0}'")]
     InvalidIsotopeValue(char),
+    /// Invalid stereochemistry value.
+    #[error("Invalid stereo value: '{0}'")]
+    InvalidStereoValue(char),
     /// Unrecognized layer prefix character after the main layer
     #[error("Unrecognized layer prefix: '{0}'")]
     UnrecognizedLayerPrefix(char),

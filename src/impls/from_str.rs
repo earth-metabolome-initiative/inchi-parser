@@ -3,7 +3,13 @@ use core::str::FromStr;
 use crate::{
     errors::Error,
     inchi::{
-        InChI, IsotopeLayer, MainLayer, charge_layer::ChargeSubLayer, proton_layer::ProtonSublayer,
+        InChI, IsotopeLayer, MainLayer,
+        charge_layer::ChargeSubLayer,
+        proton_layer::ProtonSublayer,
+        stereochemistry_layer::{
+            AlleneSublayer, DoubleBondSublayer, StereoChemistryInformationSublayer,
+            StereochemistryLayer, TetrahedralSublayer,
+        },
     },
     traits::{
         parse::{ConsumeStr, PrefixFromStrWithContext},
@@ -46,16 +52,27 @@ impl<V: Version> FromStr for InChI<V> {
 
         let proton = ProtonSublayer::try_build_layer(&mut layer_remainder, ())?;
 
-        // Skip stereo layers (b, t, m, s) that are not yet parsed.
-        // These are known-good prefixes, so no further validation needed.
-        while layer_remainder.starts_with('b')
-            || layer_remainder.starts_with('t')
-            || layer_remainder.starts_with('m')
-            || layer_remainder.starts_with('s')
+        let double_bond = DoubleBondSublayer::try_build_layer(
+            &mut layer_remainder,
+            main_layer.chemical_formula(),
+        )?;
+        let tetrahedral = TetrahedralSublayer::try_build_layer(
+            &mut layer_remainder,
+            main_layer.chemical_formula(),
+        )?;
+        let allene = AlleneSublayer::try_build_layer(&mut layer_remainder, ())?;
+        let stereo_info =
+            StereoChemistryInformationSublayer::try_build_layer(&mut layer_remainder, ())?;
+
+        let stereochemistry = if double_bond.is_some()
+            || tetrahedral.is_some()
+            || allene.is_some()
+            || stereo_info.is_some()
         {
-            let (_, rest) = layer_remainder.split_once('/').unwrap_or(("", ""));
-            layer_remainder = rest;
-        }
+            Some(StereochemistryLayer { double_bond, tetrahedral, allene, stereo_info })
+        } else {
+            None
+        };
 
         let isotope = IsotopeLayer::try_build_layer(
             &mut layer_remainder,
@@ -78,7 +95,7 @@ impl<V: Version> FromStr for InChI<V> {
             main_layer,
             charge,
             proton,
-            stereochemistry: None,
+            stereochemistry,
             isotope,
             fixed_hydrogen: None,
             reconnected: None,
