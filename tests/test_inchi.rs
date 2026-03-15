@@ -225,3 +225,25 @@ fn test_proton_without_charge_layer() {
     assert_eq!(inchi.charges(), None);
     assert_eq!(inchi.proton_count(), Some(-1));
 }
+
+#[test]
+fn test_isotope_layer_deuterated_water() {
+    // InChI=1S/H2O/h1H2/i/hD2 → deuterated water
+    let inchi: InChI = "InChI=1S/H2O/h1H2/i/hD2".parse().unwrap();
+    let iso = inchi.isotope().expect("isotope layer should be present");
+    assert_eq!(iso.components().len(), 1);
+    assert!(iso.components()[0].atoms().is_empty());
+    assert_eq!(iso.components()[0].hydrogens().len(), 1);
+    assert_eq!(
+        iso.components()[0].hydrogens()[0].isotope(),
+        elements_rs::isotopes::HydrogenIsotope::D
+    );
+    assert_eq!(iso.components()[0].hydrogens()[0].count(), 2);
+}
+
+#[test]
+fn test_no_isotope_layer() {
+    // Plain ethanol has no /i layer
+    let inchi: InChI = "InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3".parse().unwrap();
+    assert!(inchi.isotope().is_none());
+}
