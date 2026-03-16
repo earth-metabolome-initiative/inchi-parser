@@ -18,6 +18,12 @@ pub struct MainLayer {
     hydrogens: Option<HydrogensSubLayer>,
 }
 
+impl MainLayer {
+    pub(crate) fn chemical_formula(&self) -> &InChIFormula {
+        &self.chemical_formula
+    }
+}
+
 impl ConsumeStr for MainLayer {
     type Idx = u16;
     fn consume_str(input: &str) -> Result<(Self, &str), crate::errors::Error<Self::Idx>> {

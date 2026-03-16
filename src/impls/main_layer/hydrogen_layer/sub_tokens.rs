@@ -15,8 +15,9 @@ pub enum HydrogenLayerSubTokens<Idx> {
     Comma,
     /// The 'H' letter with an optional count (default 1).
     H(u8),
-    /// Mobile group opener: `(H`, `(H2`, or `(H-`. Includes the consumed `(`, `H`,
-    /// optional count, optional charge marker, and the mandatory `,` that follows.
+    /// Mobile group opener: `(H`, `(H2`, or `(H-`. Includes the consumed `(`,
+    /// `H`, optional count, optional charge marker, and the mandatory `,`
+    /// that follows.
     SharedHydrogens {
         /// Number of mobile hydrogens (1 if omitted).
         count: u8,

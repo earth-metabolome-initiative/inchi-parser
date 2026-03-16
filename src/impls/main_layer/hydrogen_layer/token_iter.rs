@@ -2,13 +2,12 @@
 
 use alloc::vec::Vec;
 
+use super::sub_tokens::{HydrogenLayerSubTokenIter, HydrogenLayerSubTokens};
 use crate::{
     errors::HydrogenLayerTokenError,
     inchi::main_layer::{HydrogenComponent, MobileHydrogenGroup},
     traits::IndexLike,
 };
-
-use super::sub_tokens::{HydrogenLayerSubTokenIter, HydrogenLayerSubTokens};
 
 /// Validates a 1-based atom index and converts it to 0-based, checking both
 /// for zero (InChI indices start at 1) and for exceeding `num_atoms`.
@@ -59,7 +58,8 @@ where
         if in_mobile {
             match token {
                 HydrogenLayerSubTokens::Comma => {
-                    // Comma separates atom indices inside a mobile group — skip it
+                    // Comma separates atom indices inside a mobile group — skip
+                    // it
                 }
                 HydrogenLayerSubTokens::Index(n) => {
                     validate_atom_index(n, num_atoms)?;
@@ -93,7 +93,8 @@ where
         } else {
             match token {
                 HydrogenLayerSubTokens::Comma => {
-                    // Comma between fixed entries or between fixed and mobile blocks — skip it
+                    // Comma between fixed entries or between fixed and mobile
+                    // blocks — skip it
                 }
                 HydrogenLayerSubTokens::Index(n) => {
                     atom_buf.push(n);

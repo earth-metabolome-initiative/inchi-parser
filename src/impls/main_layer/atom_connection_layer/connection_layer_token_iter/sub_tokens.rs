@@ -57,7 +57,6 @@ impl<Idx: IndexLike> ConnectionLayerSubTokenIter<'_, Idx> {
     pub fn peek_is_digit(&mut self) -> Option<bool> {
         Some(self.chars.peek()?.is_ascii_digit())
     }
-
 }
 
 impl<Idx> Iterator for ConnectionLayerSubTokenIter<'_, Idx>

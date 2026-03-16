@@ -15,6 +15,14 @@ pub(crate) use stereochemistry_layer::StereochemistryLayer;
 
 use crate::{inchi::charge_layer::ChargeSubLayer, version::Version};
 
+impl<V: Version> InChI<V> {
+    /// Returns the per-component charges from the `/q` layer, if present.
+    #[must_use]
+    pub fn charges(&self) -> Option<&[i16]> {
+        self.charge.as_ref().map(|c| c.charges.as_slice())
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// The InChI structure
 pub struct InChI<V: Version = crate::version::StandardVersion1_07_4> {

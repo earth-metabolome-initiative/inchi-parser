@@ -38,6 +38,9 @@ pub enum Error<Idx> {
     /// Errors while tokenizing the hydrogen layer
     #[error("Hydrogen layer tokenization error: {0}")]
     HydrogenLayerTokenError(#[from] HydrogenLayerTokenError<Idx>),
+    /// Invalid charge value in the `/q` layer.
+    #[error("Invalid charge value: '{0}'")]
+    InvalidChargeValue(char),
     /// Unrecognized layer prefix character after the main layer
     #[error("Unrecognized layer prefix: '{0}'")]
     UnrecognizedLayerPrefix(char),

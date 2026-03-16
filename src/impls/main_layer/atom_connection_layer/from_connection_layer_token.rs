@@ -1,9 +1,9 @@
 //! Parses a validated iterator of connection layer tokens into a vector of
 //! edges.
 
+use alloc::vec::Vec;
 use core::str::Chars;
 
-use alloc::vec::Vec;
 use crate::{
     errors::AtomConnectionTokenError,
     impls::main_layer::atom_connection_layer::connection_layer_token_iter::{

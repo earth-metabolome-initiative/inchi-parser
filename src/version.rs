@@ -10,6 +10,7 @@ pub trait Version: Default + Debug + PartialEq + Eq {
 #[derive(Default, Debug, PartialEq, Eq)]
 pub struct StandardVersion1_07_4;
 
+#[allow(dead_code)]
 #[derive(Default, Debug, PartialEq, Eq)]
 pub struct Version1_07_4;
 

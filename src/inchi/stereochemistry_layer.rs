@@ -5,9 +5,13 @@ use crate::traits::prefix::Prefix;
 /// The stereochemistry layer of an InChI.
 pub(crate) struct StereochemistryLayer;
 
+#[expect(dead_code, reason = "stereo sublayer parsing is not implemented yet")]
 pub(crate) struct DoubleBondSublayer;
+#[expect(dead_code, reason = "stereo sublayer parsing is not implemented yet")]
 pub(crate) struct TetrahedralSublayer;
+#[expect(dead_code, reason = "stereo sublayer parsing is not implemented yet")]
 pub(crate) struct AlleneSublayer;
+#[expect(dead_code, reason = "stereo sublayer parsing is not implemented yet")]
 pub(crate) struct StereoChemistryInformationSublayer;
 
 impl Prefix for DoubleBondSublayer {
