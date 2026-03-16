@@ -64,24 +64,23 @@ impl<Idx: IndexLike> Iterator for ConnectionLayerTokenIter<'_, Idx> {
                 let mut branch_tokens = Vec::new();
                 let mut sub_tokens = Vec::new();
                 loop {
-                    let sub_token =
-                        match self.next()? {
-                            Ok(sub_token) => sub_token,
-                            Err(e) => match e {
-                                AtomConnectionTokenError::ClosingBracketBeforeOpeningBracket => {
-                                    break;
+                    let sub_token = match self.next()? {
+                        Ok(sub_token) => sub_token,
+                        Err(e) => match e {
+                            AtomConnectionTokenError::ClosingBracketBeforeOpeningBracket => {
+                                break;
+                            }
+                            AtomConnectionTokenError::CommaBeforeAnyEdge => {
+                                if sub_tokens.is_empty() {
+                                    return Some(Err(e));
                                 }
-                                AtomConnectionTokenError::CommaBeforeAnyEdge => {
-                                    if sub_tokens.is_empty() {
-                                        return Some(Err(e));
-                                    }
-                                    branch_tokens.push(sub_tokens);
-                                    sub_tokens = Vec::new();
-                                    continue;
-                                }
-                                _ => return Some(Err(e)),
-                            },
-                        };
+                                branch_tokens.push(sub_tokens);
+                                sub_tokens = Vec::new();
+                                continue;
+                            }
+                            _ => return Some(Err(e)),
+                        },
+                    };
                     sub_tokens.push(sub_token);
                 }
                 if !sub_tokens.is_empty() {
