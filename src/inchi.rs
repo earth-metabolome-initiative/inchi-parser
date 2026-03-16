@@ -11,23 +11,53 @@ pub use fixed_hydrogen::FixedHydrogenLayer;
 pub use isotope_layer::IsotopeLayer;
 pub use main_layer::MainLayer;
 pub use reconnected_layer::ReconnectedLayer;
-pub(crate) use stereochemistry_layer::StereochemistryLayer;
+pub use stereochemistry_layer::StereochemistryLayer;
 
-use crate::{inchi::charge_layer::ChargeSubLayer, version::Version};
+use crate::{
+    inchi::{charge_layer::ChargeSubLayer, proton_layer::ProtonSublayer},
+    version::Version,
+};
 
 impl<V: Version> InChI<V> {
+    /// Returns the main layer (formula, connections, hydrogens), if present.
+    ///
+    /// Proton-only InChIs (e.g. `InChI=1S/p+1`) have no main layer.
+    #[must_use]
+    pub fn main_layer(&self) -> Option<&MainLayer> {
+        self.main_layer.as_ref()
+    }
+
     /// Returns the per-component charges from the `/q` layer, if present.
     #[must_use]
     pub fn charges(&self) -> Option<&[i16]> {
         self.charge.as_ref().map(|c| c.charges.as_slice())
+    }
+
+    /// Returns the global proton balance from the `/p` layer, if present.
+    #[must_use]
+    pub fn proton_count(&self) -> Option<i16> {
+        self.proton.as_ref().map(|p| p.proton_count)
+    }
+
+    /// Returns the stereochemistry layer, if present.
+    #[must_use]
+    pub fn stereochemistry(&self) -> Option<&StereochemistryLayer> {
+        self.stereochemistry.as_ref()
+    }
+
+    /// Returns the isotope layer, if present.
+    #[must_use]
+    pub fn isotope(&self) -> Option<&IsotopeLayer> {
+        self.isotope.as_ref()
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// The InChI structure
 pub struct InChI<V: Version = crate::version::StandardVersion1_07_4> {
-    pub(crate) main_layer: MainLayer,
+    pub(crate) main_layer: Option<MainLayer>,
     pub(crate) charge: Option<ChargeSubLayer>,
+    pub(crate) proton: Option<ProtonSublayer>,
     pub(crate) stereochemistry: Option<StereochemistryLayer>,
     pub(crate) isotope: Option<IsotopeLayer>,
     pub(crate) fixed_hydrogen: Option<FixedHydrogenLayer>,

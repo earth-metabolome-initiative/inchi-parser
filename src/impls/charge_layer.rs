@@ -13,7 +13,7 @@ use crate::{
 ///
 /// Expected formats: empty → 0, `+N` → +N, `-N` → −N.
 /// InChI charges always carry an explicit sign for nonzero values.
-fn parse_charge(s: &str) -> Result<i16, Error<u16>> {
+pub(crate) fn parse_charge(s: &str) -> Result<i16, Error<u16>> {
     if s.is_empty() {
         return Ok(0);
     }
