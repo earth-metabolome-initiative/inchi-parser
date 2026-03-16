@@ -2,7 +2,9 @@ use core::str::FromStr;
 
 use crate::{
     errors::Error,
-    inchi::{InChI, MainLayer, charge_layer::ChargeSubLayer, proton_layer::ProtonSublayer},
+    inchi::{
+        InChI, IsotopeLayer, MainLayer, charge_layer::ChargeSubLayer, proton_layer::ProtonSublayer,
+    },
     traits::{
         parse::{ConsumeStr, PrefixFromStrWithContext},
         prefix::Prefix,
@@ -44,6 +46,22 @@ impl<V: Version> FromStr for InChI<V> {
 
         let proton = ProtonSublayer::try_build_layer(&mut layer_remainder, ())?;
 
+        // Skip stereo layers (b, t, m, s) that are not yet parsed.
+        // These are known-good prefixes, so no further validation needed.
+        while layer_remainder.starts_with('b')
+            || layer_remainder.starts_with('t')
+            || layer_remainder.starts_with('m')
+            || layer_remainder.starts_with('s')
+        {
+            let (_, rest) = layer_remainder.split_once('/').unwrap_or(("", ""));
+            layer_remainder = rest;
+        }
+
+        let isotope = IsotopeLayer::try_build_layer(
+            &mut layer_remainder,
+            (main_layer.chemical_formula(), None),
+        )?;
+
         // Validate that every remaining segment starts with a known layer prefix.
         if !layer_remainder.is_empty() {
             for segment in layer_remainder.split('/') {
@@ -61,7 +79,7 @@ impl<V: Version> FromStr for InChI<V> {
             charge,
             proton,
             stereochemistry: None,
-            isotope: None,
+            isotope,
             fixed_hydrogen: None,
             reconnected: None,
             _version: core::marker::PhantomData,

@@ -41,6 +41,9 @@ pub enum Error<Idx> {
     /// Invalid charge value in the `/q` layer.
     #[error("Invalid charge value: '{0}'")]
     InvalidChargeValue(char),
+    /// Invalid isotope specification in the `/i` layer.
+    #[error("Invalid isotope value: '{0}'")]
+    InvalidIsotopeValue(char),
     /// Unrecognized layer prefix character after the main layer
     #[error("Unrecognized layer prefix: '{0}'")]
     UnrecognizedLayerPrefix(char),

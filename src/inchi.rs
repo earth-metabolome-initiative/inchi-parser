@@ -30,6 +30,12 @@ impl<V: Version> InChI<V> {
     pub fn proton_count(&self) -> Option<i16> {
         self.proton.as_ref().map(|p| p.proton_count)
     }
+
+    /// Returns the isotope layer, if present.
+    #[must_use]
+    pub fn isotope(&self) -> Option<&IsotopeLayer> {
+        self.isotope.as_ref()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
