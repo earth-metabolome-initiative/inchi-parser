@@ -45,7 +45,8 @@ impl FromStrWithContext for HydrogensSubLayer {
             let sf = subformulas.next().ok_or(Error::FormulaAndConnectionLayerMixtureMismatch(
                 context.number_of_mixtures(),
             ))?;
-            let num_atoms = sf.number_of_non_hydrogens();
+            let non_h = sf.number_of_non_hydrogens();
+            let num_atoms = if non_h == 0 { sf.number_of_elements() } else { non_h };
 
             // Parse the component
             let component = parse_component::<u16>(component_str, num_atoms)?;
@@ -132,7 +133,7 @@ mod tests {
         assert_eq!(comp.fixed_h[1], 1);
         assert_eq!(comp.mobile_groups.len(), 1);
         assert_eq!(comp.mobile_groups[0].count, 1);
-        assert!(!comp.mobile_groups[0].charged);
+        assert_eq!(comp.mobile_groups[0].negative_count, 0);
         assert_eq!(&comp.mobile_groups[0].atoms[..], &[0u16, 2u16]);
     }
 
@@ -145,7 +146,7 @@ mod tests {
         assert_eq!(comp.mobile_groups.len(), 1);
         let mg = &comp.mobile_groups[0];
         assert_eq!(mg.count, 4);
-        assert!(!mg.charged);
+        assert_eq!(mg.negative_count, 0);
         assert_eq!(&mg.atoms[..], &[9u16, 10u16, 12u16, 13u16, 16u16]);
     }
 
@@ -169,7 +170,7 @@ mod tests {
         assert_eq!(comp.mobile_groups.len(), 1);
         let mg = &comp.mobile_groups[0];
         assert_eq!(mg.count, 1);
-        assert!(mg.charged);
+        assert_eq!(mg.negative_count, 1);
         assert_eq!(&mg.atoms[..], &[0u16, 1u16]);
     }
 
@@ -207,5 +208,40 @@ mod tests {
             err,
             Error::HydrogenLayerTokenError(HydrogenLayerTokenError::InvalidCharacter('X'))
         ));
+    }
+
+    #[test]
+    fn test_mobile_group_multi_negative() {
+        // (H7-10,...) → 7 mobile H, 10 negative charges
+        let result = parse("h(H7-10,1,2,3,4,5,6,7)", "C7H21").unwrap();
+        let mg = &result.components[0].mobile_groups[0];
+        assert_eq!(mg.count, 7);
+        assert_eq!(mg.negative_count, 10);
+        assert_eq!(mg.atoms.len(), 7);
+    }
+
+    #[test]
+    fn test_mobile_group_implicit_h_multi_negative() {
+        // (H-9,...) → 1 mobile H, 9 negative charges
+        let result = parse("h(H-9,1,2)", "C2H6").unwrap();
+        let mg = &result.components[0].mobile_groups[0];
+        assert_eq!(mg.count, 1);
+        assert_eq!(mg.negative_count, 9);
+    }
+
+    #[test]
+    fn test_mobile_group_equal_count_and_negative() {
+        // (H4-4,...) → 4 mobile H, 4 negative charges
+        let result = parse("h(H4-4,1,2,3,4)", "C4H12").unwrap();
+        let mg = &result.components[0].mobile_groups[0];
+        assert_eq!(mg.count, 4);
+        assert_eq!(mg.negative_count, 4);
+    }
+
+    #[test]
+    fn test_h2_formula() {
+        // H2 with h1H → atom 1 (index 0) has 1 fixed H
+        let result = parse("h1H", "H2").unwrap();
+        assert_eq!(result.components[0].fixed_h[0], 1);
     }
 }

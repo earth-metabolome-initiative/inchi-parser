@@ -1,6 +1,6 @@
 //! InChI parsing integration tests.
 
-use inchi_parser::{errors::Error, inchi::InChI};
+use inchi_parser::inchi::{InChI, stereochemistry_layer::StereoParity};
 
 const INCHI_TEST: &[&str] = &[
     "InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3",
@@ -130,27 +130,11 @@ const INCHI_TEST: &[&str] = &[
 
 #[test]
 fn test_inchi_parsing() {
-    let mut parsed = 0usize;
-    let mut proton_only = 0usize;
     for (i, &inchi_str) in INCHI_TEST.iter().enumerate() {
-        match inchi_str.parse::<InChI>() {
-            Ok(_) => {
-                parsed += 1;
-            }
-            Err(Error::UnimplementedFeature(msg)) if msg.contains("Proton-only") => {
-                // Proton-only InChIs (e.g. "InChI=1S/p+1") are expected to be
-                // unimplemented for now.
-                proton_only += 1;
-            }
-            Err(e) => {
-                panic!("{i}) Failed to parse InChI {inchi_str}: {e:?}");
-            }
+        if let Err(e) = inchi_str.parse::<InChI>() {
+            panic!("{i}) Failed to parse InChI {inchi_str}: {e:?}");
         }
     }
-    println!(
-        "Parsed {parsed}/{} InChI strings ({proton_only} proton-only skipped).",
-        INCHI_TEST.len()
-    );
 }
 
 #[test]
@@ -224,4 +208,427 @@ fn test_proton_without_charge_layer() {
     let inchi: InChI = "InChI=1S/FHO3S/c1-5(2,3)4/h(H,2,3,4)/p-1".parse().unwrap();
     assert_eq!(inchi.charges(), None);
     assert_eq!(inchi.proton_count(), Some(-1));
+}
+
+#[test]
+fn test_isotope_layer_deuterated_water() {
+    // InChI=1S/H2O/h1H2/i/hD2 → deuterated water
+    let inchi: InChI = "InChI=1S/H2O/h1H2/i/hD2".parse().unwrap();
+    let iso = inchi.isotope().expect("isotope layer should be present");
+    assert_eq!(iso.components().len(), 1);
+    assert!(iso.components()[0].atoms().is_empty());
+    assert_eq!(iso.components()[0].hydrogens().len(), 1);
+    assert_eq!(
+        iso.components()[0].hydrogens()[0].isotope(),
+        elements_rs::isotopes::HydrogenIsotope::D
+    );
+    assert_eq!(iso.components()[0].hydrogens()[0].count(), 2);
+}
+
+#[test]
+fn test_no_isotope_layer() {
+    // Plain ethanol has no /i layer
+    let inchi: InChI = "InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3".parse().unwrap();
+    assert!(inchi.isotope().is_none());
+}
+
+#[test]
+fn test_h2_formula_parses() {
+    // H2 with h1H — H-only formula
+    let inchi: InChI = "InChI=1S/H2/h1H".parse().unwrap();
+    assert!(inchi.isotope().is_none());
+}
+
+#[test]
+fn test_isotope_zero_mass_shift() {
+    // Rn with i1+0 — zero mass shift
+    let inchi: InChI = "InChI=1S/Rn/i1+0".parse().unwrap();
+    let iso = inchi.isotope().expect("isotope layer should be present");
+    assert_eq!(iso.components()[0].atoms()[0].mass_shift(), Some(0));
+}
+
+#[test]
+fn test_isotope_atom_level_deuterium() {
+    // CH4 with i1D — atom-level deuterium
+    let inchi: InChI = "InChI=1S/CH4/h1H4/i1D".parse().unwrap();
+    let iso = inchi.isotope().expect("isotope layer should be present");
+    let atom = &iso.components()[0].atoms()[0];
+    assert_eq!(atom.mass_shift(), None);
+    assert_eq!(atom.hydrogen_isotopes().len(), 1);
+    assert_eq!(atom.hydrogen_isotopes()[0].isotope(), elements_rs::isotopes::HydrogenIsotope::D);
+}
+
+// --- Stereochemistry layer integration tests ---
+
+#[test]
+fn test_stereo_tetrahedral_ascorbic_acid() {
+    // Ascorbic acid: /t2-,5+/m0/s1
+    let inchi: InChI = "InChI=1S/C6H8O6/c7-1-2(8)5-3(9)4(10)6(11)12-5/h2,5,7-10H,1H2/t2-,5+/m0/s1"
+        .parse()
+        .unwrap();
+    let stereo = inchi.stereochemistry().expect("stereo layer should be present");
+    assert!(stereo.double_bond().is_none());
+    let tet = stereo.tetrahedral().expect("tetrahedral sublayer should be present");
+    assert_eq!(tet.components().len(), 1);
+    assert_eq!(tet.components()[0].len(), 2);
+    assert_eq!(tet.components()[0][0].atom(), 1);
+    assert_eq!(tet.components()[0][0].parity(), StereoParity::Minus);
+    assert_eq!(tet.components()[0][1].atom(), 4);
+    assert_eq!(tet.components()[0][1].parity(), StereoParity::Plus);
+    let allene = stereo.allene().expect("allene sublayer should be present");
+    assert_eq!(allene.values(), &[Some(0)]);
+    let info = stereo.stereo_info().expect("stereo info sublayer should be present");
+    assert_eq!(info.value(), 1);
+}
+
+#[test]
+fn test_stereo_double_bond() {
+    // Retinoic acid derivative: /b20-9+
+    let inchi: InChI = "InChI=1S/C30H46O3/c1-19(8-7-9-20(2)25(32)33)21-12-14-28(6)23-11-10-22-26(3,4)24(31)13-15-29(22)18-30(23,29)17-16-27(21,28)5/h9,19,21-23H,7-8,10-18H2,1-6H3,(H,32,33)/b20-9+".parse().unwrap();
+    let stereo = inchi.stereochemistry().expect("stereo layer should be present");
+    let db = stereo.double_bond().expect("double bond sublayer should be present");
+    assert_eq!(db.components().len(), 1);
+    assert_eq!(db.components()[0].len(), 1);
+    assert_eq!(db.components()[0][0].atom1(), 19);
+    assert_eq!(db.components()[0][0].atom2(), 8);
+    assert_eq!(db.components()[0][0].parity(), StereoParity::Plus);
+}
+
+#[test]
+fn test_stereo_multi_component_nickel_porphyrin() {
+    // Ni porphyrin: /t15-,19-;/m0./s1
+    let inchi: InChI = INCHI_TEST[4].parse().unwrap();
+    let stereo = inchi.stereochemistry().expect("stereo layer should be present");
+    let tet = stereo.tetrahedral().expect("tetrahedral sublayer should be present");
+    assert_eq!(tet.components().len(), 2);
+    assert_eq!(tet.components()[0].len(), 2);
+    assert_eq!(tet.components()[0][0].atom(), 14);
+    assert_eq!(tet.components()[0][0].parity(), StereoParity::Minus);
+    assert_eq!(tet.components()[0][1].atom(), 18);
+    assert_eq!(tet.components()[0][1].parity(), StereoParity::Minus);
+    assert!(tet.components()[1].is_empty());
+    let allene = stereo.allene().expect("allene sublayer should be present");
+    assert_eq!(allene.values(), &[Some(0), None]);
+}
+
+#[test]
+fn test_stereo_unknown_parity() {
+    // InChI with ? parity: /t6?
+    let inchi: InChI =
+        "InChI=1S/C6H12O6/c7-1-2(8)5-3(9)4(10)6(11)12-5/h2-11H,1H2/t2-,3+,4+,5-,6?/m1/s1"
+            .parse()
+            .unwrap();
+    let stereo = inchi.stereochemistry().expect("stereo layer should be present");
+    let tet = stereo.tetrahedral().expect("tetrahedral sublayer should be present");
+    // Last center has ? parity
+    let last = tet.components()[0].last().unwrap();
+    assert_eq!(last.atom(), 5);
+    assert_eq!(last.parity(), StereoParity::Unknown);
+}
+
+#[test]
+fn test_no_stereo_layer() {
+    // Plain ethanol has no stereo
+    let inchi: InChI = "InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3".parse().unwrap();
+    assert!(inchi.stereochemistry().is_none());
+}
+
+#[test]
+fn test_stereo_double_bond_minus() {
+    // /b11-6- → cis double bond
+    let inchi: InChI = "InChI=1S/C15H22O2/c1-10(2)13-9-14(16)12(4)7-5-6-11(3)8-15(13)17/h6,12H,5,7-9H2,1-4H3/b11-6-".parse().unwrap();
+    let stereo = inchi.stereochemistry().expect("stereo layer should be present");
+    let db = stereo.double_bond().expect("double bond sublayer should be present");
+    assert_eq!(db.components()[0][0].parity(), StereoParity::Minus);
+}
+
+#[test]
+fn test_stereo_m_multi_digit_groups() {
+    // m00. → two components value 0 in first formula group, empty second
+    let inchi: InChI = "InChI=1S/2C20H24N2O2.H2O4S/c2*1-3-13-12-22-9-7-14(13)10-19(22)20(23)16-6-8-21-18-5-4-15(24-2)11-17(16)18;1-5(2,3)4/h2*3-6,8,11,13-14,19-20,23H,1,7,9-10,12H2,2H3;(H2,1,2,3,4)/t2*13-,14?,19+,20-;/m00./s1".parse().unwrap();
+    let stereo = inchi.stereochemistry().expect("stereo layer should be present");
+    let allene = stereo.allene().expect("allene sublayer should be present");
+    assert_eq!(allene.values(), &[Some(0), Some(0), None]);
+}
+
+#[test]
+fn test_stereo_m_different_digits() {
+    // m01 → two components: first 0, second 1
+    let inchi: InChI = "InChI=1S/C9H13NO3.C4H6O6/c1-10-5-9(13)6-2-3-7(11)8(12)4-6;5-1(3(7)8)2(6)4(9)10/h2-4,9-13H,5H2,1H3;1-2,5-6H,(H,7,8)(H,9,10)/t9-;1-,2-/m01/s1".parse().unwrap();
+    let stereo = inchi.stereochemistry().expect("stereo layer should be present");
+    let allene = stereo.allene().expect("allene sublayer should be present");
+    assert_eq!(allene.values(), &[Some(0), Some(1)]);
+}
+
+#[test]
+fn test_stereo_m_empty_first_group() {
+    // m.11 → first formula group empty, then two components value 1
+    let inchi: InChI = "InChI=1S/C15H32N2.2C4H6O6/c1-16(12-6-7-13-16)10-4-3-5-11-17(2)14-8-9-15-17;2*5-1(3(7)8)2(6)4(9)10/h3-15H2,1-2H3;2*1-2,5-6H,(H,7,8)(H,9,10)/q+2;;/p-2/t;2*1-,2-/m.11/s1".parse().unwrap();
+    let stereo = inchi.stereochemistry().expect("stereo layer should be present");
+    let allene = stereo.allene().expect("allene sublayer should be present");
+    assert_eq!(allene.values(), &[None, Some(1), Some(1)]);
+}
+
+// --- Corner case: /b without /t, /m, /s ---
+
+#[test]
+fn test_stereo_b_only_no_t_m_s() {
+    // /b20-9+ with nothing following — double bond stereo only
+    let inchi: InChI = "InChI=1S/C30H46O3/c1-19(8-7-9-20(2)25(32)33)21-12-14-28(6)23-11-10-22-26(3,4)24(31)13-15-29(22)18-30(23,29)17-16-27(21,28)5/h9,19,21-23H,7-8,10-18H2,1-6H3,(H,32,33)/b20-9+".parse().unwrap();
+    let stereo = inchi.stereochemistry().expect("stereo layer should be present");
+    let db = stereo.double_bond().expect("double bond sublayer should be present");
+    assert_eq!(db.components().len(), 1);
+    assert_eq!(db.components()[0].len(), 1);
+    assert_eq!(db.components()[0][0].atom1(), 19);
+    assert_eq!(db.components()[0][0].atom2(), 8);
+    assert_eq!(db.components()[0][0].parity(), StereoParity::Plus);
+    // No /t, /m, /s
+    assert!(stereo.tetrahedral().is_none());
+    assert!(stereo.allene().is_none());
+    assert!(stereo.stereo_info().is_none());
+}
+
+#[test]
+fn test_stereo_b_only_many_bonds() {
+    // 6 double bonds, no /t/m/s
+    let inchi: InChI = "InChI=1S/C20H20O2/c1-2-3-4-5-6-7-8-13-18-14-9-10-15-19(18)16-11-12-17-20(21)22/h2-17H,1H3,(H,21,22)/b3-2+,5-4+,7-6+,13-8+,16-11+,17-12+".parse().unwrap();
+    let stereo = inchi.stereochemistry().expect("stereo layer should be present");
+    let db = stereo.double_bond().expect("double bond sublayer should be present");
+    assert_eq!(db.components()[0].len(), 6);
+    // All bonds should be Plus
+    for bond in &db.components()[0] {
+        assert_eq!(bond.parity(), StereoParity::Plus);
+    }
+    assert!(stereo.tetrahedral().is_none());
+    assert!(stereo.allene().is_none());
+    assert!(stereo.stereo_info().is_none());
+}
+
+// --- Corner case: /b with ? parity ---
+
+#[test]
+fn test_stereo_b_unknown_parity() {
+    // /b6-5+,10-7? → second bond has unknown parity; also /b10-7? in spec
+    let inchi: InChI = "InChI=1S/C15H20O4/c1-10(7-13(17)18)5-6-15(19)11(2)8-12(16)9-14(15,3)4/h5-8,19H,9H2,1-4H3,(H,17,18)/b6-5+,10-7?/t15-/m1/s1".parse().unwrap();
+    let stereo = inchi.stereochemistry().expect("stereo layer should be present");
+    let db = stereo.double_bond().expect("double bond sublayer should be present");
+    assert_eq!(db.components()[0].len(), 2);
+    assert_eq!(db.components()[0][0].parity(), StereoParity::Plus);
+    assert_eq!(db.components()[0][1].parity(), StereoParity::Unknown);
+}
+
+// --- Corner case: /b and /t together ---
+
+#[test]
+fn test_stereo_b_and_t_together() {
+    // Both double bond and tetrahedral stereo: /b50-44+/t47-,...,62+/m0/s1
+    let inchi: InChI = "InChI=1S/C62H116O16S/c1-7-9-11-13-15-17-19-21-22-23-24-25-26-27-29-30-32-34-36-38-40-47(3)42-48(4)43-49(5)44-50(6)60(69)76-57-55(67)52(46-64)74-62(77-61-58(78-79(70,71)72)56(68)54(66)51(45-63)73-61)59(57)75-53(65)41-39-37-35-33-31-28-20-18-16-14-12-10-8-2/h44,47-49,51-52,54-59,61-64,66-68H,7-43,45-46H2,1-6H3,(H,70,71,72)/b50-44+/t47-,48-,49-,51+,52+,54+,55+,56-,57-,58+,59+,61+,62+/m0/s1".parse().unwrap();
+    let stereo = inchi.stereochemistry().expect("stereo layer should be present");
+    let db = stereo.double_bond().expect("double bond sublayer should be present");
+    assert_eq!(db.components()[0].len(), 1);
+    assert_eq!(db.components()[0][0].atom1(), 49);
+    assert_eq!(db.components()[0][0].atom2(), 43);
+    let tet = stereo.tetrahedral().expect("tetrahedral sublayer should be present");
+    assert_eq!(tet.components()[0].len(), 13);
+    assert_eq!(stereo.stereo_info().unwrap().value(), 1);
+}
+
+// --- Corner case: multi-component /t with leading ; (empty first component)
+// ---
+
+#[test]
+fn test_stereo_t_leading_semicolon() {
+    // /t;2*1-,2- → first component has no stereo, second two components via 2*
+    // prefix
+    let inchi: InChI = "InChI=1S/C15H32N2.2C4H6O6/c1-16(12-6-7-13-16)10-4-3-5-11-17(2)14-8-9-15-17;2*5-1(3(7)8)2(6)4(9)10/h3-15H2,1-2H3;2*1-2,5-6H,(H,7,8)(H,9,10)/q+2;;/p-2/t;2*1-,2-/m.11/s1".parse().unwrap();
+    let stereo = inchi.stereochemistry().expect("stereo layer should be present");
+    let tet = stereo.tetrahedral().expect("tetrahedral sublayer should be present");
+    assert_eq!(tet.components().len(), 3);
+    assert!(tet.components()[0].is_empty()); // first component empty
+    assert_eq!(tet.components()[1].len(), 2); // second has 2 centers
+    assert_eq!(tet.components()[2].len(), 2); // third (repeated) has 2 centers
+    assert_eq!(tet.components()[1][0].atom(), 0);
+    assert_eq!(tet.components()[1][0].parity(), StereoParity::Minus);
+}
+
+// --- Corner case: /t with n* repetition prefix ---
+
+#[test]
+fn test_stereo_t_repetition_prefix() {
+    // /t2*13-,14?,19+,20- → 2 identical components with 4 centers each
+    let inchi: InChI = "InChI=1S/2C20H24N2O2.H2O4S/c2*1-3-13-12-22-9-7-14(13)10-19(22)20(23)16-6-8-21-18-5-4-15(24-2)11-17(16)18;1-5(2,3)4/h2*3-6,8,11,13-14,19-20,23H,1,7,9-10,12H2,2H3;(H2,1,2,3,4)/t2*13-,14?,19+,20-;/m00./s1".parse().unwrap();
+    let stereo = inchi.stereochemistry().expect("stereo layer should be present");
+    let tet = stereo.tetrahedral().expect("tetrahedral sublayer should be present");
+    assert_eq!(tet.components().len(), 3);
+    // First two components should be identical (2* prefix)
+    assert_eq!(tet.components()[0], tet.components()[1]);
+    assert_eq!(tet.components()[0].len(), 4);
+    assert_eq!(tet.components()[0][0].atom(), 12);
+    assert_eq!(tet.components()[0][0].parity(), StereoParity::Minus);
+    assert_eq!(tet.components()[0][1].atom(), 13);
+    assert_eq!(tet.components()[0][1].parity(), StereoParity::Unknown);
+    assert_eq!(tet.components()[0][2].atom(), 18);
+    assert_eq!(tet.components()[0][2].parity(), StereoParity::Plus);
+    assert_eq!(tet.components()[0][3].atom(), 19);
+    assert_eq!(tet.components()[0][3].parity(), StereoParity::Minus);
+    // Third component (H2O4S) has no stereo
+    assert!(tet.components()[2].is_empty());
+}
+
+// --- Corner case: /t with all ? parities ---
+
+#[test]
+fn test_stereo_t_all_unknown() {
+    // /t17?,18? → all unknown parities (custom minimal test)
+    // Using a real InChI that has some ? parities: /t3-/m0/s1 with unknown in /b
+    // Actually test a real InChI where /t has a mix including ?
+    let inchi: InChI = "InChI=1S/C21H36O5/c1-16(22)14-12-10-8-6-4-3-5-7-9-11-13-15-18-19(20(23)24)17(2)21(25)26-18/h17-19H,3-15H2,1-2H3,(H,23,24)/t17?,18-,19?/m1/s1".parse().unwrap();
+    let stereo = inchi.stereochemistry().expect("stereo layer should be present");
+    let tet = stereo.tetrahedral().expect("tetrahedral sublayer should be present");
+    assert_eq!(tet.components()[0].len(), 3);
+    assert_eq!(tet.components()[0][0].parity(), StereoParity::Unknown);
+    assert_eq!(tet.components()[0][1].parity(), StereoParity::Minus);
+    assert_eq!(tet.components()[0][2].parity(), StereoParity::Unknown);
+}
+
+// --- Corner case: /b with large atom indices ---
+
+#[test]
+fn test_stereo_b_large_indices() {
+    // /b43-24+,...,50-40+ → indices up to 50
+    let inchi: InChI = "InChI=1S/C56H80O2/c1-42(2)22-14-23-43(3)24-15-25-44(4)26-16-27-45(5)28-17-29-46(6)30-18-31-47(7)32-19-33-48(8)34-20-35-49(9)36-21-37-50(10)40-41-52-51(11)55(57)53-38-12-13-39-54(53)56(52)58/h12-13,22,24,26,28,30,32,34,36,38-40H,14-21,23,25,27,29,31,33,35,37,41H2,1-11H3/b43-24+,44-26+,45-28+,46-30+,47-32+,48-34+,49-36+,50-40+".parse().unwrap();
+    let stereo = inchi.stereochemistry().expect("stereo layer should be present");
+    let db = stereo.double_bond().expect("double bond sublayer should be present");
+    assert_eq!(db.components()[0].len(), 8);
+    // Last bond: atoms 50→49, 40→39 (0-based)
+    let last = db.components()[0].last().unwrap();
+    assert_eq!(last.atom1(), 49);
+    assert_eq!(last.atom2(), 39);
+    assert_eq!(last.parity(), StereoParity::Plus);
+}
+
+// --- Corner case: /b with mixed parities including - ---
+
+#[test]
+fn test_stereo_b_mixed_parities() {
+    // /b20-11?,24-12- → unknown and minus in /b
+    let inchi: InChI = "InChI=1S/C19H22N8O6S2/c1-33-24-12(10-8-35-19(21)22-10)15(29)23-13-16(30)27-14(18(31)32)9(7-34-17(13)27)6-25-3-2-11(20)26(25)4-5-28/h2-3,8,13,17,20,28H,4-7H2,1H3,(H2,21,22)(H,23,29)(H,31,32)/b20-11?,24-12-/t13-,17-/m1/s1".parse().unwrap();
+    let stereo = inchi.stereochemistry().expect("stereo layer should be present");
+    let db = stereo.double_bond().expect("double bond sublayer should be present");
+    assert_eq!(db.components()[0].len(), 2);
+    assert_eq!(db.components()[0][0].parity(), StereoParity::Unknown);
+    assert_eq!(db.components()[0][1].parity(), StereoParity::Minus);
+    // Also has /t
+    let tet = stereo.tetrahedral().unwrap();
+    assert_eq!(tet.components()[0].len(), 2);
+}
+
+// --- Corner case: single stereo center ---
+
+#[test]
+fn test_stereo_single_center() {
+    // /t12-/m0/s1 → single tetrahedral center
+    let inchi: InChI = "InChI=1S/C19H19NO4/c1-20-6-5-11-8-14-19(24-9-23-14)17-15(11)12(20)7-10-3-4-13(22-2)18(21)16(10)17/h3-4,8,12,21H,5-7,9H2,1-2H3/t12-/m0/s1".parse().unwrap();
+    let stereo = inchi.stereochemistry().expect("stereo layer should be present");
+    let tet = stereo.tetrahedral().expect("tetrahedral sublayer should be present");
+    assert_eq!(tet.components()[0].len(), 1);
+    assert_eq!(tet.components()[0][0].atom(), 11);
+    assert_eq!(tet.components()[0][0].parity(), StereoParity::Minus);
+}
+
+// --- Corner case: /b with both + and - on same molecule ---
+
+#[test]
+fn test_stereo_b_plus_and_minus_together() {
+    // /b10-9+,12-11+ → two trans bonds in same molecule
+    let inchi: InChI = "InChI=1S/C19H32O3/c1-3-4-12-15-18(20)16-13-10-8-6-5-7-9-11-14-17-19(21)22-2/h8,10,13,16H,3-7,9,11-12,14-15,17H2,1-2H3/b10-8+,16-13+".parse().unwrap();
+    let stereo = inchi.stereochemistry().expect("stereo layer should be present");
+    let db = stereo.double_bond().expect("double bond sublayer should be present");
+    assert_eq!(db.components()[0].len(), 2);
+    assert_eq!(db.components()[0][0].parity(), StereoParity::Plus);
+    assert_eq!(db.components()[0][1].parity(), StereoParity::Plus);
+    // No /t, /m, /s
+    assert!(stereo.tetrahedral().is_none());
+}
+
+// --- Corner case: insulin (very large /t with many centers) ---
+
+#[test]
+fn test_stereo_insulin_many_centers() {
+    // Insulin has 53 tetrahedral centers
+    let inchi: InChI = INCHI_TEST[10].parse().unwrap();
+    let stereo = inchi.stereochemistry().expect("stereo layer should be present");
+    let tet = stereo.tetrahedral().expect("tetrahedral sublayer should be present");
+    assert_eq!(tet.components()[0].len(), 53);
+    // Verify first and last
+    assert_eq!(tet.components()[0][0].atom(), 136); // t137- → 0-based 136
+    assert_eq!(tet.components()[0][0].parity(), StereoParity::Minus);
+    let last = tet.components()[0].last().unwrap();
+    assert_eq!(last.atom(), 215); // t216- → 0-based 215
+    assert_eq!(last.parity(), StereoParity::Minus);
+}
+
+// --- Proton-only InChI tests ---
+
+#[test]
+fn test_proton_only_simple() {
+    let inchi: InChI = "InChI=1S/p+1".parse().unwrap();
+    assert!(inchi.main_layer().is_none());
+    assert_eq!(inchi.proton_count(), Some(1));
+    assert!(inchi.isotope().is_none());
+    assert!(inchi.charges().is_none());
+    assert!(inchi.stereochemistry().is_none());
+}
+
+#[test]
+fn test_proton_only_count_3() {
+    let inchi: InChI = "InChI=1S/p+3".parse().unwrap();
+    assert!(inchi.main_layer().is_none());
+    assert_eq!(inchi.proton_count(), Some(3));
+}
+
+#[test]
+fn test_proton_only_isotope_deuterium() {
+    let inchi: InChI = "InChI=1S/p+1/i/hD".parse().unwrap();
+    assert!(inchi.main_layer().is_none());
+    assert_eq!(inchi.proton_count(), Some(1));
+    let iso = inchi.isotope().expect("isotope layer should be present");
+    assert_eq!(iso.components().len(), 1);
+    assert!(iso.components()[0].atoms().is_empty());
+    assert_eq!(iso.components()[0].hydrogens().len(), 1);
+    assert_eq!(
+        iso.components()[0].hydrogens()[0].isotope(),
+        elements_rs::isotopes::HydrogenIsotope::D
+    );
+    assert_eq!(iso.components()[0].hydrogens()[0].count(), 1);
+}
+
+#[test]
+fn test_proton_only_isotope_tritium() {
+    let inchi: InChI = "InChI=1S/p+1/i/hT".parse().unwrap();
+    assert!(inchi.main_layer().is_none());
+    assert_eq!(inchi.proton_count(), Some(1));
+    let iso = inchi.isotope().expect("isotope layer should be present");
+    assert_eq!(
+        iso.components()[0].hydrogens()[0].isotope(),
+        elements_rs::isotopes::HydrogenIsotope::T
+    );
+}
+
+#[test]
+fn test_proton_only_isotope_protium() {
+    let inchi: InChI = "InChI=1S/p+1/i/hH".parse().unwrap();
+    assert!(inchi.main_layer().is_none());
+    assert_eq!(inchi.proton_count(), Some(1));
+    let iso = inchi.isotope().expect("isotope layer should be present");
+    assert_eq!(
+        iso.components()[0].hydrogens()[0].isotope(),
+        elements_rs::isotopes::HydrogenIsotope::H1
+    );
+}
+
+#[test]
+fn test_normal_inchi_has_main_layer() {
+    let inchi: InChI = "InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3".parse().unwrap();
+    assert!(inchi.main_layer().is_some());
 }

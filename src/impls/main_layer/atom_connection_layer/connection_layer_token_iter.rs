@@ -84,6 +84,9 @@ impl<Idx: IndexLike> Iterator for ConnectionLayerTokenIter<'_, Idx> {
                         };
                     sub_tokens.push(sub_token);
                 }
+                if !sub_tokens.is_empty() {
+                    branch_tokens.push(sub_tokens);
+                }
                 ConnectionLayerToken::Branch(branch_tokens)
             }
             ConnectionLayerSubToken::CloseParenthesis => {
