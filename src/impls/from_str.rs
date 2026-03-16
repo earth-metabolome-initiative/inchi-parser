@@ -42,6 +42,8 @@ impl<V: Version> FromStr for InChI<V> {
         let charge =
             ChargeSubLayer::try_build_layer(&mut layer_remainder, main_layer.chemical_formula())?;
 
+        let proton = ProtonSublayer::try_build_layer(&mut layer_remainder, ())?;
+
         // Validate that every remaining segment starts with a known layer prefix.
         if !layer_remainder.is_empty() {
             for segment in layer_remainder.split('/') {
@@ -57,6 +59,7 @@ impl<V: Version> FromStr for InChI<V> {
         Ok(InChI {
             main_layer,
             charge,
+            proton,
             stereochemistry: None,
             isotope: None,
             fixed_hydrogen: None,
