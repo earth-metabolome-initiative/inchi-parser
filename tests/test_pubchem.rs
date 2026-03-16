@@ -18,7 +18,7 @@ use std::{
 
 use csv::ReaderBuilder;
 use flate2::read::GzDecoder;
-use inchi_parser::{errors::Error, inchi::InChI};
+use inchi_parser::inchi::InChI;
 use indicatif::{ProgressBar, ProgressStyle};
 use serde::Deserialize;
 
@@ -110,7 +110,7 @@ fn validate_pubchem_inchi(file_path: &Path) -> Result<(), Box<dyn std::error::Er
         pb.inc(1);
 
         match compound.inchi.parse::<InChI>() {
-            Ok(_) | Err(Error::UnimplementedFeature(_)) => {}
+            Ok(_) => {}
             Err(e) => {
                 let error_key = e.to_string();
                 let entry = error_examples.entry(error_key).or_default();

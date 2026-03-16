@@ -77,7 +77,7 @@ where
         }
         let token = match self.chars.next()? {
             '(' => ConnectionLayerSubToken::OpenParenthesis,
-            ')' => ConnectionLayerSubToken::CloseParenthesis,
+            ')' => return Some(Ok(ConnectionLayerSubToken::CloseParenthesis)),
             ',' => ConnectionLayerSubToken::Comma,
             '-' => ConnectionLayerSubToken::Dash,
             unexpected_char => {
