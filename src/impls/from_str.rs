@@ -1,9 +1,17 @@
+use alloc::vec::Vec;
 use core::str::FromStr;
 
 use crate::{
     errors::Error,
     inchi::{
-        InChI, IsotopeLayer, MainLayer, charge_layer::ChargeSubLayer, proton_layer::ProtonSublayer,
+        InChI, IsotopeLayer, MainLayer,
+        charge_layer::ChargeSubLayer,
+        isotope_layer::IsotopeComponent,
+        proton_layer::ProtonSublayer,
+        stereochemistry_layer::{
+            AlleneSublayer, DoubleBondSublayer, StereoChemistryInformationSublayer,
+            StereochemistryLayer, TetrahedralSublayer,
+        },
     },
     traits::{
         parse::{ConsumeStr, PrefixFromStrWithContext},
@@ -11,6 +19,54 @@ use crate::{
     },
     version::Version,
 };
+
+/// Parses a proton-only InChI (no chemical formula).
+///
+/// After the `/` separator, the input starts with `p` and may optionally
+/// include an isotope layer in the form `/i/hXY`.
+fn parse_proton_only<V: Version>(mut s: &str) -> Result<InChI<V>, Error<u16>> {
+    let proton = ProtonSublayer::try_build_layer(&mut s, ())?;
+
+    // Parse optional isotope layer: only `/i/hXY` form is valid here
+    // (empty atom body + hydrogen isotope sublayer).
+    let isotope = if s.starts_with(IsotopeLayer::PREFIX) {
+        // Consume the "i" segment
+        let (_, mut remainder) = s.split_once('/').unwrap_or((s, ""));
+
+        // Check for hydrogen isotope sublayer (/hD, /hT, /hH)
+        let hydrogens = if remainder.starts_with('h')
+            && remainder.as_bytes().get(1).is_some_and(|&b| b == b'D' || b == b'T' || b == b'H')
+        {
+            let (h_seg, rest) = remainder.split_once('/').unwrap_or((remainder, ""));
+            remainder = rest;
+            super::isotope_layer::parse_h_isotope_segment(h_seg)?
+        } else {
+            Vec::new()
+        };
+
+        s = remainder;
+        Some(IsotopeLayer {
+            components: alloc::vec![IsotopeComponent { atoms: Vec::new(), hydrogens }],
+        })
+    } else {
+        None
+    };
+
+    if !s.is_empty() {
+        return Err(Error::UnrecognizedLayerPrefix(s.chars().next().unwrap_or('/')));
+    }
+
+    Ok(InChI {
+        main_layer: None,
+        charge: None,
+        proton,
+        stereochemistry: None,
+        isotope,
+        fixed_hydrogen: None,
+        reconnected: None,
+        _version: core::marker::PhantomData,
+    })
+}
 
 impl<V: Version> FromStr for InChI<V> {
     type Err = Error<u16>;
@@ -31,10 +87,9 @@ impl<V: Version> FromStr for InChI<V> {
             return Err(Self::Err::MissingForwardSlash("Missing chemical formula forward slash"));
         };
 
-        // If the next token is a lowercase 'p' then this means that we don't have
-        // a main layer and we skip it
+        // Proton-only InChIs have no chemical formula — just /p and optionally /i
         if s.starts_with(ProtonSublayer::PREFIX) {
-            return Err(Error::UnimplementedFeature("Proton-only InChIs not yet supported"));
+            return parse_proton_only(s);
         }
 
         // Parse the main layer (formula, connections, hydrogens).
@@ -46,16 +101,27 @@ impl<V: Version> FromStr for InChI<V> {
 
         let proton = ProtonSublayer::try_build_layer(&mut layer_remainder, ())?;
 
-        // Skip stereo layers (b, t, m, s) that are not yet parsed.
-        // These are known-good prefixes, so no further validation needed.
-        while layer_remainder.starts_with('b')
-            || layer_remainder.starts_with('t')
-            || layer_remainder.starts_with('m')
-            || layer_remainder.starts_with('s')
+        let double_bond = DoubleBondSublayer::try_build_layer(
+            &mut layer_remainder,
+            main_layer.chemical_formula(),
+        )?;
+        let tetrahedral = TetrahedralSublayer::try_build_layer(
+            &mut layer_remainder,
+            main_layer.chemical_formula(),
+        )?;
+        let allene = AlleneSublayer::try_build_layer(&mut layer_remainder, ())?;
+        let stereo_info =
+            StereoChemistryInformationSublayer::try_build_layer(&mut layer_remainder, ())?;
+
+        let stereochemistry = if double_bond.is_some()
+            || tetrahedral.is_some()
+            || allene.is_some()
+            || stereo_info.is_some()
         {
-            let (_, rest) = layer_remainder.split_once('/').unwrap_or(("", ""));
-            layer_remainder = rest;
-        }
+            Some(StereochemistryLayer { double_bond, tetrahedral, allene, stereo_info })
+        } else {
+            None
+        };
 
         let isotope = IsotopeLayer::try_build_layer(
             &mut layer_remainder,
@@ -75,10 +141,10 @@ impl<V: Version> FromStr for InChI<V> {
         }
 
         Ok(InChI {
-            main_layer,
+            main_layer: Some(main_layer),
             charge,
             proton,
-            stereochemistry: None,
+            stereochemistry,
             isotope,
             fixed_hydrogen: None,
             reconnected: None,

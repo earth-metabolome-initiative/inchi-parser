@@ -13,7 +13,7 @@ use crate::{
 };
 
 /// Parses hydrogen isotope specs from a segment like `hD2`, `hT`, `hDT3`.
-fn parse_h_isotope_segment(s: &str) -> Result<Vec<IsotopeHydrogen>, Error<u16>> {
+pub(crate) fn parse_h_isotope_segment(s: &str) -> Result<Vec<IsotopeHydrogen>, Error<u16>> {
     let s = s.strip_prefix('h').ok_or(Error::InvalidIsotopeValue('h'))?;
     let mut hydrogens = Vec::new();
     let mut chars = s.chars().peekable();

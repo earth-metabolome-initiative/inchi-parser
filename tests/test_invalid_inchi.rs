@@ -46,20 +46,22 @@ fn test_not_hill_sorted() {
 fn test_unbalanced_parenthesis() {
     let inchi_str = "InChI=1S/C2H6O/c1)/";
     let result = inchi_str.parse::<InChI>();
-    assert!(
-        matches!(result, Err(Error::AtomConnectionTokenError(_))),
-        "Unbalanced parenthesis should produce an atom connection error: {result:?}"
+    assert_eq!(
+        result,
+        Err(Error::AtomConnectionTokenError(
+            AtomConnectionTokenError::ClosingBracketBeforeOpeningBracket
+        ))
     );
 }
 
 #[test]
 fn test_self_loop_comma() {
-    // TODO: The connection layer parser does not detect self-loops introduced
-    // via branch notation like `16(4,16(...))` where atom 16 connects to itself
-    // through a comma-separated branch.
     let inchi_str = "InChI=1S/C16H25NS/c1-12(2)13-7-5-8-15(3)9-6-10-16(4,16(13)15)17-11-18/h13-14H,1,5-10H2,2-4H3/t13-,14-,15+,16-/m1/s1";
     let result = inchi_str.parse::<InChI>();
-    assert!(result.is_ok(), "Known limitation: self-loop via branch not yet detected: {result:?}");
+    assert_eq!(
+        result,
+        Err(Error::AtomConnectionTokenError(AtomConnectionTokenError::SelfLoopDetected(16)))
+    );
 }
 
 #[test]
@@ -75,14 +77,12 @@ fn test_self_loop_dash() {
 #[test]
 fn test_self_loop_parenthesis() {
     // The string has two self-loops: `12(12)` and `5-5`.
-    // The parser encounters `5-5` (dash-based self-loop) and detects it,
-    // but the parenthesis-based `12(12)` is not yet detected.
-    // TODO: Detect self-loops in parenthesized branches like `12(12)`.
+    // The parser now encounters `12(12)` first (parenthesis-based self-loop).
     let inchi_str = "InChI=1S/C16H25NS/c1-12(12)13-7-5-5-15(3)9-6-10-16(4,16(13)15)17-11-18/h13-14H,1,5-10H2,2-4H3/t13-,14-,15+,16-/m1/s1";
     let result = inchi_str.parse::<InChI>();
     assert_eq!(
         result,
-        Err(Error::AtomConnectionTokenError(AtomConnectionTokenError::SelfLoopDetected(5)))
+        Err(Error::AtomConnectionTokenError(AtomConnectionTokenError::SelfLoopDetected(12)))
     );
 }
 
@@ -122,7 +122,7 @@ fn test_unrecognized_layer_prefix() {
 #[test]
 fn test_valid_unimplemented_layers_still_parse() {
     // InChI with charge and stereo layers should parse without error.
-    let inchi_str = "InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3/q+1/b2-3";
+    let inchi_str = "InChI=1S/C2H6O/c1-2-3/h3H,2H2,1H3/q+1/b2-3+";
     let result = inchi_str.parse::<InChI>();
     assert!(result.is_ok(), "Known layers after main layer should be accepted: {result:?}");
 }
