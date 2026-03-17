@@ -6,7 +6,7 @@ use crate::{
     errors::Error,
     inchi::stereochemistry_layer::{
         AlleneSublayer, DoubleBondStereo, DoubleBondSublayer, StereoChemistryInformationSublayer,
-        StereoParity, TetrahedralStereo, TetrahedralSublayer,
+        StereoParity, TetrahedralComponent, TetrahedralStereo, TetrahedralSublayer,
     },
     traits::{
         parse::{FromStrWithContext, PrefixFromStrWithContext},
@@ -153,6 +153,34 @@ impl PrefixFromStrWithContext for DoubleBondSublayer {}
 
 // --- TetrahedralSublayer ---
 
+/// Check whether `s` is an sp3 abbreviation: optional digits followed by `m` or
+/// `e` at the end.
+fn is_sp3_abbreviation(s: &str) -> bool {
+    let bytes = s.as_bytes();
+    match bytes.last() {
+        Some(b'm' | b'e') => bytes[..bytes.len() - 1].iter().all(u8::is_ascii_digit),
+        _ => false,
+    }
+}
+
+/// Parse an sp3 abbreviation like `m`, `2m`, `e`, `3e`.
+/// Returns `(count, variant)` where count defaults to 1.
+fn parse_sp3_abbreviation(s: &str) -> Result<(u32, TetrahedralComponent), Error<u16>> {
+    let letter = s.as_bytes()[s.len() - 1];
+    let prefix = &s[..s.len() - 1];
+    let count = if prefix.is_empty() {
+        1
+    } else {
+        prefix.parse::<u32>().map_err(|_| Error::InvalidStereoValue(s.chars().next().unwrap()))?
+    };
+    let variant = match letter {
+        b'm' => TetrahedralComponent::SameAsMainLayer,
+        b'e' => TetrahedralComponent::Explicit(Vec::new()),
+        _ => unreachable!("is_sp3_abbreviation already checked"),
+    };
+    Ok((count, variant))
+}
+
 impl FromStrWithContext for TetrahedralSublayer {
     type Context<'a> = &'a InChIFormula;
     type Input<'a> = &'a str;
@@ -168,6 +196,18 @@ impl FromStrWithContext for TetrahedralSublayer {
         let mut components = Vec::with_capacity(context.number_of_mixtures());
 
         for component_str in s.split(';') {
+            // Check for abbreviation: [N]m or [N]e (before N* multiplier check)
+            if is_sp3_abbreviation(component_str) {
+                let (count, variant) = parse_sp3_abbreviation(component_str)?;
+                for _ in 0..count {
+                    subformulas.next().ok_or(Error::FormulaAndConnectionLayerMixtureMismatch(
+                        context.number_of_mixtures(),
+                    ))?;
+                    components.push(variant.clone());
+                }
+                continue;
+            }
+
             let digit_count = component_str.bytes().take_while(u8::is_ascii_digit).count();
             let (reps, component_str) =
                 if digit_count > 0 && component_str.as_bytes().get(digit_count) == Some(&b'*') {
@@ -192,12 +232,13 @@ impl FromStrWithContext for TetrahedralSublayer {
                     .collect::<Result<Vec<_>, _>>()?
             };
 
-            components.push(centers.clone());
+            let comp = TetrahedralComponent::Explicit(centers.clone());
+            components.push(comp.clone());
             for _ in 1..reps {
                 subformulas.next().ok_or(Error::FormulaAndConnectionLayerMixtureMismatch(
                     context.number_of_mixtures(),
                 ))?;
-                components.push(centers.clone());
+                components.push(comp.clone());
             }
         }
 
@@ -228,17 +269,15 @@ impl FromStrWithContext for AlleneSublayer {
 
         let mut values = Vec::new();
         for segment in s.split('.') {
-            if segment.is_empty() {
-                values.push(None);
-            } else {
-                for c in segment.chars() {
-                    match c {
-                        '0' => values.push(Some(0)),
-                        '1' => values.push(Some(1)),
-                        _ => return Err(Error::InvalidStereoValue(c)),
-                    }
+            let mut group = Vec::new();
+            for c in segment.chars() {
+                match c {
+                    '0' => group.push(0),
+                    '1' => group.push(1),
+                    _ => return Err(Error::InvalidStereoValue(c)),
                 }
             }
+            values.push(group);
         }
 
         Ok(AlleneSublayer { values })
@@ -276,6 +315,7 @@ impl PrefixFromStrWithContext for StereoChemistryInformationSublayer {}
 
 #[cfg(test)]
 mod tests {
+    use alloc::vec;
     use core::str::FromStr;
 
     use molecular_formulas::InChIFormula;
@@ -284,10 +324,21 @@ mod tests {
         errors::Error,
         inchi::stereochemistry_layer::{
             AlleneSublayer, DoubleBondSublayer, StereoChemistryInformationSublayer, StereoParity,
-            TetrahedralSublayer,
+            TetrahedralComponent, TetrahedralSublayer,
         },
         traits::parse::FromStrWithContext,
     };
+
+    /// Unwrap an `Explicit` component for assertions.
+    #[track_caller]
+    fn explicit(comp: &TetrahedralComponent) -> &[super::TetrahedralStereo] {
+        match comp {
+            TetrahedralComponent::Explicit(v) => v,
+            TetrahedralComponent::SameAsMainLayer => {
+                panic!("expected Explicit, got SameAsMainLayer")
+            }
+        }
+    }
 
     fn formula(s: &str) -> InChIFormula {
         InChIFormula::from_str(s).expect("valid formula")
@@ -371,35 +422,38 @@ mod tests {
     fn test_t_four_centers() {
         let f = formula("C16H30");
         let result = TetrahedralSublayer::from_str_with_context("t13-,14-,15+,16-", &f).unwrap();
-        assert_eq!(result.components[0].len(), 4);
-        assert_eq!(result.components[0][0].atom, 12);
-        assert_eq!(result.components[0][0].parity, StereoParity::Minus);
-        assert_eq!(result.components[0][1].atom, 13);
-        assert_eq!(result.components[0][1].parity, StereoParity::Minus);
-        assert_eq!(result.components[0][2].atom, 14);
-        assert_eq!(result.components[0][2].parity, StereoParity::Plus);
-        assert_eq!(result.components[0][3].atom, 15);
-        assert_eq!(result.components[0][3].parity, StereoParity::Minus);
+        let c0 = explicit(&result.components[0]);
+        assert_eq!(c0.len(), 4);
+        assert_eq!(c0[0].atom, 12);
+        assert_eq!(c0[0].parity, StereoParity::Minus);
+        assert_eq!(c0[1].atom, 13);
+        assert_eq!(c0[1].parity, StereoParity::Minus);
+        assert_eq!(c0[2].atom, 14);
+        assert_eq!(c0[2].parity, StereoParity::Plus);
+        assert_eq!(c0[3].atom, 15);
+        assert_eq!(c0[3].parity, StereoParity::Minus);
     }
 
     #[test]
     fn test_t_two_centers() {
         let f = formula("C5H10");
         let result = TetrahedralSublayer::from_str_with_context("t2-,5+", &f).unwrap();
-        assert_eq!(result.components[0].len(), 2);
-        assert_eq!(result.components[0][0].atom, 1);
-        assert_eq!(result.components[0][0].parity, StereoParity::Minus);
-        assert_eq!(result.components[0][1].atom, 4);
-        assert_eq!(result.components[0][1].parity, StereoParity::Plus);
+        let c0 = explicit(&result.components[0]);
+        assert_eq!(c0.len(), 2);
+        assert_eq!(c0[0].atom, 1);
+        assert_eq!(c0[0].parity, StereoParity::Minus);
+        assert_eq!(c0[1].atom, 4);
+        assert_eq!(c0[1].parity, StereoParity::Plus);
     }
 
     #[test]
     fn test_t_unknown_parity() {
         let f = formula("C6H12");
         let result = TetrahedralSublayer::from_str_with_context("t6?", &f).unwrap();
-        assert_eq!(result.components[0].len(), 1);
-        assert_eq!(result.components[0][0].atom, 5);
-        assert_eq!(result.components[0][0].parity, StereoParity::Unknown);
+        let c0 = explicit(&result.components[0]);
+        assert_eq!(c0.len(), 1);
+        assert_eq!(c0[0].atom, 5);
+        assert_eq!(c0[0].parity, StereoParity::Unknown);
     }
 
     #[test]
@@ -407,12 +461,13 @@ mod tests {
         let f = formula("C32H34N4O4.Ni");
         let result = TetrahedralSublayer::from_str_with_context("t15-,19-;", &f).unwrap();
         assert_eq!(result.components.len(), 2);
-        assert_eq!(result.components[0].len(), 2);
-        assert_eq!(result.components[0][0].atom, 14);
-        assert_eq!(result.components[0][0].parity, StereoParity::Minus);
-        assert_eq!(result.components[0][1].atom, 18);
-        assert_eq!(result.components[0][1].parity, StereoParity::Minus);
-        assert!(result.components[1].is_empty());
+        let c0 = explicit(&result.components[0]);
+        assert_eq!(c0.len(), 2);
+        assert_eq!(c0[0].atom, 14);
+        assert_eq!(c0[0].parity, StereoParity::Minus);
+        assert_eq!(c0[1].atom, 18);
+        assert_eq!(c0[1].parity, StereoParity::Minus);
+        assert!(explicit(&result.components[1]).is_empty());
     }
 
     #[test]
@@ -421,9 +476,10 @@ mod tests {
         let result = TetrahedralSublayer::from_str_with_context("t2*1+", &f).unwrap();
         assert_eq!(result.components.len(), 2);
         for comp in &result.components {
-            assert_eq!(comp.len(), 1);
-            assert_eq!(comp[0].atom, 0);
-            assert_eq!(comp[0].parity, StereoParity::Plus);
+            let centers = explicit(comp);
+            assert_eq!(centers.len(), 1);
+            assert_eq!(centers[0].atom, 0);
+            assert_eq!(centers[0].parity, StereoParity::Plus);
         }
     }
 
@@ -432,7 +488,7 @@ mod tests {
         let f = formula("CH4");
         let result = TetrahedralSublayer::from_str_with_context("t", &f).unwrap();
         assert_eq!(result.components.len(), 1);
-        assert!(result.components[0].is_empty());
+        assert!(explicit(&result.components[0]).is_empty());
     }
 
     #[test]
@@ -447,53 +503,53 @@ mod tests {
     #[test]
     fn test_m_zero() {
         let result = AlleneSublayer::from_str_with_context("m0", ()).unwrap();
-        assert_eq!(result.values, &[Some(0)]);
+        assert_eq!(result.values, &[vec![0]]);
     }
 
     #[test]
     fn test_m_one() {
         let result = AlleneSublayer::from_str_with_context("m1", ()).unwrap();
-        assert_eq!(result.values, &[Some(1)]);
+        assert_eq!(result.values, &[vec![1]]);
     }
 
     #[test]
     fn test_m_zero_dot() {
         let result = AlleneSublayer::from_str_with_context("m0.", ()).unwrap();
-        assert_eq!(result.values, &[Some(0), None]);
+        assert_eq!(result.values, &[vec![0], vec![]]);
     }
 
     #[test]
     fn test_m_one_dot() {
         let result = AlleneSublayer::from_str_with_context("m1.", ()).unwrap();
-        assert_eq!(result.values, &[Some(1), None]);
+        assert_eq!(result.values, &[vec![1], vec![]]);
     }
 
     #[test]
     fn test_m_two_digits_same_group() {
         // m00. → two components value 0 in first group, empty second group
         let result = AlleneSublayer::from_str_with_context("m00.", ()).unwrap();
-        assert_eq!(result.values, &[Some(0), Some(0), None]);
+        assert_eq!(result.values, &[vec![0, 0], vec![]]);
     }
 
     #[test]
     fn test_m_two_digits_no_dot() {
         // m01 → two components: first 0, second 1
         let result = AlleneSublayer::from_str_with_context("m01", ()).unwrap();
-        assert_eq!(result.values, &[Some(0), Some(1)]);
+        assert_eq!(result.values, &[vec![0, 1]]);
     }
 
     #[test]
     fn test_m_empty_first_group() {
         // m.11 → first group empty, then two components value 1
         let result = AlleneSublayer::from_str_with_context("m.11", ()).unwrap();
-        assert_eq!(result.values, &[None, Some(1), Some(1)]);
+        assert_eq!(result.values, &[vec![], vec![1, 1]]);
     }
 
     #[test]
     fn test_m_two_digits_trailing_dot() {
         // m11. → two components value 1, empty third group
         let result = AlleneSublayer::from_str_with_context("m11.", ()).unwrap();
-        assert_eq!(result.values, &[Some(1), Some(1), None]);
+        assert_eq!(result.values, &[vec![1, 1], vec![]]);
     }
 
     #[test]
@@ -657,14 +713,14 @@ mod tests {
     fn test_m_multiple_dots() {
         // m0..1 → three groups: first has '0', second empty, third has '1'
         let result = AlleneSublayer::from_str_with_context("m0..1", ()).unwrap();
-        assert_eq!(result.values, &[Some(0), None, Some(1)]);
+        assert_eq!(result.values, &[vec![0], vec![], vec![1]]);
     }
 
     #[test]
     fn test_m_all_empty() {
         // m.. → two dots = three groups all empty
         let result = AlleneSublayer::from_str_with_context("m..", ()).unwrap();
-        assert_eq!(result.values, &[None, None, None]);
+        assert_eq!(result.values, &[vec![], vec![], vec![]]);
     }
 
     #[test]
@@ -691,7 +747,7 @@ mod tests {
         let f = formula("CH4");
         let mut input = "t1+/m0/s1";
         let result = TetrahedralSublayer::try_build_layer(&mut input, &f).unwrap().unwrap();
-        assert_eq!(result.components[0].len(), 1);
+        assert_eq!(explicit(&result.components[0]).len(), 1);
         assert_eq!(input, "m0/s1"); // /t consumed
     }
 
@@ -699,7 +755,7 @@ mod tests {
     fn test_m_try_build_layer_consumes_segment() {
         let mut input = "m0/s1";
         let result = AlleneSublayer::try_build_layer(&mut input, ()).unwrap().unwrap();
-        assert_eq!(result.values, &[Some(0)]);
+        assert_eq!(result.values, &[vec![0]]);
         assert_eq!(input, "s1"); // /m consumed
     }
 
@@ -719,5 +775,64 @@ mod tests {
         let result = DoubleBondSublayer::try_build_layer(&mut input, &f).unwrap().unwrap();
         assert_eq!(result.components[0].len(), 1);
         assert_eq!(input, ""); // fully consumed
+    }
+
+    // --- /t abbreviation tests ---
+
+    #[test]
+    fn test_t_abbreviation_m() {
+        // 2-component formula: "m;" → SameAsMainLayer, Explicit([])
+        let f = formula("C3H6.C2H4");
+        let result = TetrahedralSublayer::from_str_with_context("tm;", &f).unwrap();
+        assert_eq!(result.components.len(), 2);
+        assert_eq!(result.components[0], TetrahedralComponent::SameAsMainLayer);
+        assert!(explicit(&result.components[1]).is_empty());
+    }
+
+    #[test]
+    fn test_t_abbreviation_2m() {
+        // 3-component formula: "2m;1+" → 2 SameAsMainLayer + Explicit
+        let f = formula("C3H6.C2H4.CH4");
+        let result = TetrahedralSublayer::from_str_with_context("t2m;1+", &f).unwrap();
+        assert_eq!(result.components.len(), 3);
+        assert_eq!(result.components[0], TetrahedralComponent::SameAsMainLayer);
+        assert_eq!(result.components[1], TetrahedralComponent::SameAsMainLayer);
+        let c2 = explicit(&result.components[2]);
+        assert_eq!(c2.len(), 1);
+        assert_eq!(c2[0].atom, 0);
+        assert_eq!(c2[0].parity, StereoParity::Plus);
+    }
+
+    #[test]
+    fn test_t_abbreviation_mixed() {
+        // 3-component formula: "m;1+;m"
+        let f = formula("C3H6.C2H4.CH4");
+        let result = TetrahedralSublayer::from_str_with_context("tm;1+;m", &f).unwrap();
+        assert_eq!(result.components.len(), 3);
+        assert_eq!(result.components[0], TetrahedralComponent::SameAsMainLayer);
+        let c1 = explicit(&result.components[1]);
+        assert_eq!(c1.len(), 1);
+        assert_eq!(result.components[2], TetrahedralComponent::SameAsMainLayer);
+    }
+
+    #[test]
+    fn test_t_abbreviation_e() {
+        // 1-component formula: "e" → Explicit([])
+        let f = formula("C3H6");
+        let result = TetrahedralSublayer::from_str_with_context("te", &f).unwrap();
+        assert_eq!(result.components.len(), 1);
+        assert!(explicit(&result.components[0]).is_empty());
+    }
+
+    #[test]
+    fn test_t_abbreviation_display_roundtrip() {
+        use alloc::string::ToString;
+        // 2-component: "m;4-,5?"
+        let f = formula("C5H10.C5H10");
+        let result = TetrahedralSublayer::from_str_with_context("tm;4-,5?", &f).unwrap();
+        assert_eq!(result.components.len(), 2);
+        assert_eq!(result.components[0], TetrahedralComponent::SameAsMainLayer);
+        let displayed = result.to_string();
+        assert_eq!(displayed, "/tm;4-,5?");
     }
 }

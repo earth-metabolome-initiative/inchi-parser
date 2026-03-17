@@ -82,16 +82,26 @@ impl TetrahedralStereo {
     }
 }
 
+/// A single component's tetrahedral stereo content.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TetrahedralComponent {
+    /// Explicit parity assignments for stereo centers.
+    Explicit(Vec<TetrahedralStereo>),
+    /// Abbreviation `m`: same stereo as the main (non-isotopic) layer.
+    /// Only valid in isotope-specific layers.
+    SameAsMainLayer,
+}
+
 /// Tetrahedral stereo sublayer: per-component center specs.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TetrahedralSublayer {
-    pub(crate) components: Vec<Vec<TetrahedralStereo>>,
+    pub(crate) components: Vec<TetrahedralComponent>,
 }
 
 impl TetrahedralSublayer {
     /// Returns the per-component tetrahedral stereo specifications.
     #[must_use]
-    pub fn components(&self) -> &[Vec<TetrahedralStereo>] {
+    pub fn components(&self) -> &[TetrahedralComponent] {
         &self.components
     }
 }
@@ -100,16 +110,16 @@ impl Prefix for TetrahedralSublayer {
     const PREFIX: char = 't';
 }
 
-/// Allene/mirror sublayer: per-component 0/1 values.
+/// Allene/mirror sublayer: per-fragment parity groups.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AlleneSublayer {
-    pub(crate) values: Vec<Option<u8>>,
+    pub(crate) values: Vec<Vec<u8>>,
 }
 
 impl AlleneSublayer {
-    /// Returns the per-component values.
+    /// Returns the per-fragment parity groups.
     #[must_use]
-    pub fn values(&self) -> &[Option<u8>] {
+    pub fn values(&self) -> &[Vec<u8>] {
         &self.values
     }
 }

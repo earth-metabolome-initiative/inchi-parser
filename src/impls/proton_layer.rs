@@ -18,6 +18,9 @@ impl FromStrWithContext for ProtonSublayer {
         _context: Self::Context<'_>,
     ) -> Result<Self, Error<Self::Idx>> {
         let s = input.strip_prefix(Self::PREFIX).ok_or(Error::WrongPrefix)?;
+        if s.is_empty() {
+            return Err(Error::InvalidChargeValue('p'));
+        }
         let proton_count = parse_charge(s)?;
         Ok(ProtonSublayer { proton_count })
     }
@@ -60,9 +63,9 @@ mod tests {
     }
 
     #[test]
-    fn test_empty_body_implies_zero() {
-        let result = parse("p").unwrap();
-        assert_eq!(result.proton_count, 0);
+    fn test_empty_body_is_rejected() {
+        let err = parse("p").unwrap_err();
+        assert!(matches!(err, Error::InvalidChargeValue('p')));
     }
 
     #[test]

@@ -93,6 +93,14 @@ pub enum AtomConnectionTokenError<Idx> {
     /// Atom index is zero (InChI indices are 1-based)
     #[error("Atom index is zero; InChI uses 1-based indices")]
     ZeroAtomIndex,
+    /// Atom index exceeds the formula's non-hydrogen atom count
+    #[error("Atom index {index} exceeds non-hydrogen atom count {num_atoms}")]
+    AtomIndexOutOfBounds {
+        /// The 1-based atom index from the input
+        index: Idx,
+        /// The number of non-hydrogen atoms in the subformula
+        num_atoms: Idx,
+    },
 }
 
 #[derive(thiserror::Error, Debug, Clone, Copy, PartialEq, Eq)]

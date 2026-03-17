@@ -66,6 +66,9 @@ where
                     mobile_atoms.push(n);
                 }
                 HydrogenLayerSubTokens::CloseParenthesis => {
+                    if mobile_atoms.is_empty() {
+                        return Err(HydrogenLayerTokenError::InvalidCharacter(')'));
+                    }
                     // Convert 1-based to 0-based and emit the group
                     // (indices already validated above)
                     let atoms = mobile_atoms.drain(..).map(|a| a - Idx::ONE).collect();

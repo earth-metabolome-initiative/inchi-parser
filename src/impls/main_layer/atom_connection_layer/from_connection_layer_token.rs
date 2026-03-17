@@ -7,7 +7,7 @@ use core::str::Chars;
 use crate::{
     errors::AtomConnectionTokenError,
     impls::main_layer::atom_connection_layer::connection_layer_token_iter::{
-        ConnectionLayerToken, ConnectionLayerTokenIter,
+        ConnectionLayerSubToken, ConnectionLayerToken, ConnectionLayerTokenIter,
     },
     traits::IndexLike,
 };
@@ -64,7 +64,9 @@ fn parse_token<Idx: IndexLike>(
         }
         ConnectionLayerToken::Branch(branch) => {
             let Some(last_atom) = last_atom else {
-                unreachable!("Branch cannot be the first token")
+                return Err(AtomConnectionTokenError::IllegalStartingToken(
+                    ConnectionLayerSubToken::OpenParenthesis,
+                ));
             };
             for sub_branch in branch {
                 let mut branch_last_atom = last_atom;

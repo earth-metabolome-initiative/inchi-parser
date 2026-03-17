@@ -51,13 +51,15 @@ impl FromStrWithContext for HydrogensSubLayer {
             // Parse the component
             let component = parse_component::<u16>(component_str, num_atoms)?;
 
-            // Push the first occurrence then n-1 clones for repeated fragments
-            components.push(component.clone());
+            components.push(component);
             for _ in 1..reps {
-                subformulas.next().ok_or(Error::FormulaAndConnectionLayerMixtureMismatch(
-                    context.number_of_mixtures(),
-                ))?;
-                components.push(component.clone());
+                let sf = subformulas.next().ok_or(
+                    Error::FormulaAndConnectionLayerMixtureMismatch(context.number_of_mixtures()),
+                )?;
+                let non_h = sf.number_of_non_hydrogens();
+                let num_atoms = if non_h == 0 { sf.number_of_elements() } else { non_h };
+                let component = parse_component::<u16>(component_str, num_atoms)?;
+                components.push(component);
             }
         }
 

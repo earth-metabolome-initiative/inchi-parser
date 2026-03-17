@@ -50,6 +50,16 @@ impl<V: Version> InChI<V> {
     pub fn isotope(&self) -> Option<&IsotopeLayer> {
         self.isotope.as_ref()
     }
+
+    /// Returns the isotope-specific stereochemistry layer, if present.
+    ///
+    /// When isotopic substitution changes the stereo assignment (e.g.
+    /// deuterium altering CIP priorities), a second set of `/b`, `/t`,
+    /// `/m`, `/s` layers appears after the `/i` layer.
+    #[must_use]
+    pub fn isotope_stereochemistry(&self) -> Option<&StereochemistryLayer> {
+        self.isotope_stereochemistry.as_ref()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -60,6 +70,7 @@ pub struct InChI<V: Version = crate::version::StandardVersion1_07_4> {
     pub(crate) proton: Option<ProtonSublayer>,
     pub(crate) stereochemistry: Option<StereochemistryLayer>,
     pub(crate) isotope: Option<IsotopeLayer>,
+    pub(crate) isotope_stereochemistry: Option<StereochemistryLayer>,
     pub(crate) fixed_hydrogen: Option<FixedHydrogenLayer>,
     pub(crate) reconnected: Option<ReconnectedLayer>,
     pub(crate) _version: core::marker::PhantomData<V>,

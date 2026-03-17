@@ -1,7 +1,9 @@
 //! Module for the main layer of an InChI.
 
 mod atom_connection_layer;
-pub(crate) use atom_connection_layer::{AtomConnectionLayer, MolecularGraph};
+pub(crate) use atom_connection_layer::{
+    AtomConnectionComponent, AtomConnectionLayer, MolecularGraph,
+};
 mod hydrogen_layer;
 use core::str::FromStr;
 
@@ -13,9 +15,9 @@ use crate::traits::parse::{ConsumeStr, PrefixFromStrWithContext};
 #[derive(Debug, Clone, PartialEq, Eq)]
 /// The main layer of an InChI.
 pub struct MainLayer {
-    chemical_formula: InChIFormula,
-    atom_connections: Option<AtomConnectionLayer<u16>>,
-    hydrogens: Option<HydrogensSubLayer>,
+    pub(crate) chemical_formula: InChIFormula,
+    pub(crate) atom_connections: Option<AtomConnectionLayer>,
+    pub(crate) hydrogens: Option<HydrogensSubLayer>,
 }
 
 impl MainLayer {

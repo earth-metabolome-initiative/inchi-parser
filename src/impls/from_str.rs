@@ -20,6 +20,42 @@ use crate::{
     version::Version,
 };
 
+/// Four optional stereo sublayers parsed as a group.
+type StereoSublayers = (
+    Option<DoubleBondSublayer>,
+    Option<TetrahedralSublayer>,
+    Option<AlleneSublayer>,
+    Option<StereoChemistryInformationSublayer>,
+);
+
+/// Try to parse one set of stereo sublayers (`/b`, `/t`, `/m`, `/s`) from
+/// the front of `input`, returning each as an `Option`.
+fn parse_stereo_sublayers(
+    input: &mut &str,
+    formula: &molecular_formulas::InChIFormula,
+) -> Result<StereoSublayers, Error<u16>> {
+    let db = DoubleBondSublayer::try_build_layer(input, formula)?;
+    let tet = TetrahedralSublayer::try_build_layer(input, formula)?;
+    let allene = AlleneSublayer::try_build_layer(input, ())?;
+    let info = StereoChemistryInformationSublayer::try_build_layer(input, ())?;
+    Ok((db, tet, allene, info))
+}
+
+/// Build a [`StereochemistryLayer`] from individual `Option` sublayers,
+/// returning `None` when all sublayers are absent.
+fn build_stereo_layer(
+    double_bond: Option<DoubleBondSublayer>,
+    tetrahedral: Option<TetrahedralSublayer>,
+    allene: Option<AlleneSublayer>,
+    stereo_info: Option<StereoChemistryInformationSublayer>,
+) -> Option<StereochemistryLayer> {
+    if double_bond.is_some() || tetrahedral.is_some() || allene.is_some() || stereo_info.is_some() {
+        Some(StereochemistryLayer { double_bond, tetrahedral, allene, stereo_info })
+    } else {
+        None
+    }
+}
+
 /// Parses a proton-only InChI (no chemical formula).
 ///
 /// After the `/` separator, the input starts with `p` and may optionally
@@ -62,6 +98,7 @@ fn parse_proton_only<V: Version>(mut s: &str) -> Result<InChI<V>, Error<u16>> {
         proton,
         stereochemistry: None,
         isotope,
+        isotope_stereochemistry: None,
         fixed_hydrogen: None,
         reconnected: None,
         _version: core::marker::PhantomData,
@@ -101,32 +138,62 @@ impl<V: Version> FromStr for InChI<V> {
 
         let proton = ProtonSublayer::try_build_layer(&mut layer_remainder, ())?;
 
-        let double_bond = DoubleBondSublayer::try_build_layer(
-            &mut layer_remainder,
-            main_layer.chemical_formula(),
-        )?;
-        let tetrahedral = TetrahedralSublayer::try_build_layer(
-            &mut layer_remainder,
-            main_layer.chemical_formula(),
-        )?;
-        let allene = AlleneSublayer::try_build_layer(&mut layer_remainder, ())?;
-        let stereo_info =
-            StereoChemistryInformationSublayer::try_build_layer(&mut layer_remainder, ())?;
-
-        let stereochemistry = if double_bond.is_some()
-            || tetrahedral.is_some()
-            || allene.is_some()
-            || stereo_info.is_some()
-        {
-            Some(StereochemistryLayer { double_bond, tetrahedral, allene, stereo_info })
-        } else {
-            None
-        };
+        let (mut db, mut tet, mut allene, mut s_info) =
+            parse_stereo_sublayers(&mut layer_remainder, main_layer.chemical_formula())?;
 
         let isotope = IsotopeLayer::try_build_layer(
             &mut layer_remainder,
             (main_layer.chemical_formula(), None),
         )?;
+
+        // Parse stereo layers after /i.  Two scenarios produce these:
+        //
+        // 1. Non-standard ordering — /i appears before /b, /t, /m, /s. The post-/i
+        //    layers are the *main* stereo layers.
+        // 2. Isotope-specific stereo — isotopic substitution changes CIP priorities,
+        //    producing a second /b, /t, /m, /s set after /i.
+        //
+        // If any sublayer type appears both before AND after /i, the
+        // entire post-/i group is isotope-specific.  Otherwise the
+        // post-/i layers fill in the (absent) main stereo.
+        // Isotope-specific stereo may use shorthands (e.g. `m` for
+        // mirror-image) that the parser does not yet fully support.
+        // If parsing fails, restore the remainder so the content is
+        // validated but not consumed.
+        let saved_remainder = layer_remainder;
+        let (pi_db, pi_tet, pi_allene, pi_info) = if let Ok(sublayers) =
+            parse_stereo_sublayers(&mut layer_remainder, main_layer.chemical_formula())
+        {
+            sublayers
+        } else {
+            layer_remainder = saved_remainder;
+            (None, None, None, None)
+        };
+
+        let has_duplicate = pi_db.is_some() && db.is_some()
+            || pi_tet.is_some() && tet.is_some()
+            || pi_allene.is_some() && allene.is_some()
+            || pi_info.is_some() && s_info.is_some();
+
+        let isotope_stereochemistry = if has_duplicate {
+            build_stereo_layer(pi_db, pi_tet, pi_allene, pi_info)
+        } else {
+            if db.is_none() {
+                db = pi_db;
+            }
+            if tet.is_none() {
+                tet = pi_tet;
+            }
+            if allene.is_none() {
+                allene = pi_allene;
+            }
+            if s_info.is_none() {
+                s_info = pi_info;
+            }
+            None
+        };
+
+        let stereochemistry = build_stereo_layer(db, tet, allene, s_info);
 
         // Validate that every remaining segment starts with a known layer prefix.
         if !layer_remainder.is_empty() {
@@ -146,6 +213,7 @@ impl<V: Version> FromStr for InChI<V> {
             proton,
             stereochemistry,
             isotope,
+            isotope_stereochemistry,
             fixed_hydrogen: None,
             reconnected: None,
             _version: core::marker::PhantomData,
