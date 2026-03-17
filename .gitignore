@@ -1,5 +1,6 @@
 /target
 tests/CID-InChI-Key.gz
+tests/CID-InChI-Key.tsv
 tests/sorted_pubchem_inchi_deduplicated.tsv.gz
 failed_inchis.txt
 fuzz/target
