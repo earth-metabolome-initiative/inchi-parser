@@ -67,7 +67,8 @@ impl FromStrWithContext for ChargeSubLayer {
         let mut charges = alloc::vec::Vec::with_capacity(context.number_of_mixtures());
 
         for component_str in s.split(';') {
-            // Detect optional n* repetition prefix (e.g. "2*+1" → reps=2, rest="+1").
+            // Detect optional n* repetition prefix (e.g. "2*+1" → reps=2,
+            // rest="+1").
             let digit_count = component_str.bytes().take_while(u8::is_ascii_digit).count();
             let (reps, component_str) =
                 if digit_count > 0 && component_str.as_bytes().get(digit_count) == Some(&b'*') {

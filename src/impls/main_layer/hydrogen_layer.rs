@@ -28,8 +28,9 @@ impl FromStrWithContext for HydrogensSubLayer {
         let mut components = alloc::vec::Vec::with_capacity(context.number_of_mixtures());
 
         for component_str in s.split(';') {
-            // Detect optional n* repetition prefix (e.g. "2*1H" → reps=2, rest="1H").
-            // The prefix is purely ASCII digits followed by '*', so we can scan bytes.
+            // Detect optional n* repetition prefix (e.g. "2*1H" → reps=2,
+            // rest="1H"). The prefix is purely ASCII digits
+            // followed by '*', so we can scan bytes.
             let digit_count = component_str.bytes().take_while(u8::is_ascii_digit).count();
             let (reps, component_str) =
                 if digit_count > 0 && component_str.as_bytes().get(digit_count) == Some(&b'*') {
@@ -99,7 +100,7 @@ mod tests {
         let result = parse("h1H2", "CH4").unwrap();
         assert_eq!(result.components.len(), 1);
         assert_eq!(result.components[0].fixed_h[0], 2);
-        assert!(result.components[0].mobile_groups.is_empty());
+        assert_eq!(result.components[0].mobile_groups.len(), 0);
     }
 
     #[test]
@@ -181,7 +182,7 @@ mod tests {
         assert_eq!(result.components.len(), 2);
         assert_eq!(result.components[0].fixed_h[0], 1);
         assert!(result.components[1].fixed_h.iter().all(|&h| h == 0));
-        assert!(result.components[1].mobile_groups.is_empty());
+        assert_eq!(result.components[1].mobile_groups.len(), 0);
     }
 
     #[test]
@@ -191,7 +192,7 @@ mod tests {
         assert_eq!(result.components.len(), 2);
         for comp in &result.components {
             assert_eq!(comp.fixed_h[0], 1);
-            assert!(comp.mobile_groups.is_empty());
+            assert_eq!(comp.mobile_groups.len(), 0);
         }
     }
 

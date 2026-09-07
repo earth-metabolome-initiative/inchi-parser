@@ -87,13 +87,15 @@ impl<V: Version> FromStr for InChI<V> {
             return Err(Self::Err::MissingForwardSlash("Missing chemical formula forward slash"));
         };
 
-        // Proton-only InChIs have no chemical formula — just /p and optionally /i
+        // Proton-only InChIs have no chemical formula — just /p and optionally
+        // /i
         if s.starts_with(ProtonSublayer::PREFIX) {
             return parse_proton_only(s);
         }
 
         // Parse the main layer (formula, connections, hydrogens).
-        // Remaining layers after the hydrogen layer are validated but not parsed yet.
+        // Remaining layers after the hydrogen layer are validated but not
+        // parsed yet.
         let (main_layer, mut layer_remainder) = MainLayer::consume_str(s)?;
 
         let charge =
@@ -128,7 +130,8 @@ impl<V: Version> FromStr for InChI<V> {
             (main_layer.chemical_formula(), None),
         )?;
 
-        // Validate that every remaining segment starts with a known layer prefix.
+        // Validate that every remaining segment starts with a known layer
+        // prefix.
         if !layer_remainder.is_empty() {
             for segment in layer_remainder.split('/') {
                 let Some(prefix) = segment.chars().next() else {

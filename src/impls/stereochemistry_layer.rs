@@ -355,7 +355,7 @@ mod tests {
         let f = formula("C3H6");
         let result = DoubleBondSublayer::from_str_with_context("b", &f).unwrap();
         assert_eq!(result.components.len(), 1);
-        assert!(result.components[0].is_empty());
+        assert_eq!(result.components[0].len(), 0);
     }
 
     #[test]
@@ -412,7 +412,7 @@ mod tests {
         assert_eq!(result.components[0][0].parity, StereoParity::Minus);
         assert_eq!(result.components[0][1].atom, 18);
         assert_eq!(result.components[0][1].parity, StereoParity::Minus);
-        assert!(result.components[1].is_empty());
+        assert_eq!(result.components[1].len(), 0);
     }
 
     #[test]
@@ -432,7 +432,7 @@ mod tests {
         let f = formula("CH4");
         let result = TetrahedralSublayer::from_str_with_context("t", &f).unwrap();
         assert_eq!(result.components.len(), 1);
-        assert!(result.components[0].is_empty());
+        assert_eq!(result.components[0].len(), 0);
     }
 
     #[test]

@@ -129,7 +129,8 @@ where
                 Ok(n) => n,
                 Err(e) => return Some(Err(HydrogenLayerTokenError::NumericError(e))),
             };
-            // Check what follows: '-' for range, '*' for repetition, else plain index
+            // Check what follows: '-' for range, '*' for repetition, else plain
+            // index
             if self.consume_dash() {
                 // Range: N-M
                 let m = match try_fold_number::<Idx, BaselineDigit, _>(&mut self.chars) {
@@ -150,7 +151,8 @@ where
             return Some(Ok(HydrogenLayerSubTokens::Index(n)));
         }
 
-        // Handle 'H' (fixed hydrogen marker, always outside parentheses at this point)
+        // Handle 'H' (fixed hydrogen marker, always outside parentheses at this
+        // point)
         if let Some(true) = self.peek_is_hydrogen() {
             self.chars.next(); // consume 'H'
             let count = match try_fold_number::<u8, BaselineDigit, _>(&mut self.chars) {

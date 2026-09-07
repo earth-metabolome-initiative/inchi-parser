@@ -158,13 +158,14 @@ impl FromStrWithContext for IsotopeLayer {
         let s = input.strip_prefix(Self::PREFIX).ok_or(Error::WrongPrefix)?;
         let (formula, h_segment) = context;
 
-        // Parse hydrogen isotope specs from the /h sublayer (shared across components
-        // when it appears as a single segment without semicolons).
+        // Parse hydrogen isotope specs from the /h sublayer (shared across
+        // components when it appears as a single segment without
+        // semicolons).
         let shared_hydrogens =
             if let Some(h_seg) = h_segment { parse_h_isotope_segment(h_seg)? } else { Vec::new() };
 
-        // If the atom spec body is empty, build a single-component layer with just H
-        // isotopes.
+        // If the atom spec body is empty, build a single-component layer with
+        // just H isotopes.
         if s.is_empty() {
             let components =
                 vec![IsotopeComponent { atoms: Vec::new(), hydrogens: shared_hydrogens }];
@@ -225,9 +226,10 @@ impl PrefixFromStrWithContext for IsotopeLayer {
         // Consume the /i segment
         let (i_segment, mut remainder) = input.split_once('/').unwrap_or((input, ""));
 
-        // Check if the next segment is the hydrogen isotope sublayer (/hD2, /hT, etc.)
-        // It starts with 'h' followed by D, T, or H (not a digit, which would be the
-        // main hydrogen layer pattern like "h1H2").
+        // Check if the next segment is the hydrogen isotope sublayer (/hD2,
+        // /hT, etc.) It starts with 'h' followed by D, T, or H (not a
+        // digit, which would be the main hydrogen layer pattern like
+        // "h1H2").
         let h_isotope_segment = if remainder.starts_with('h')
             && remainder.as_bytes().get(1).is_some_and(|&b| b == b'D' || b == b'T' || b == b'H')
         {
@@ -269,7 +271,7 @@ mod tests {
         // i/hD2 → body empty, h_segment = "hD2"
         let result = parse("i", Some("hD2"), "H2O").unwrap();
         assert_eq!(result.components.len(), 1);
-        assert!(result.components[0].atoms.is_empty());
+        assert_eq!(result.components[0].atoms.len(), 0);
         assert_eq!(result.components[0].hydrogens.len(), 1);
         assert_eq!(result.components[0].hydrogens[0].isotope, HydrogenIsotope::D);
         assert_eq!(result.components[0].hydrogens[0].count, 2);
@@ -299,7 +301,7 @@ mod tests {
         assert_eq!(result.components[0].atoms.len(), 1);
         assert_eq!(result.components[0].atoms[0].atom_index, 0);
         assert_eq!(result.components[0].atoms[0].mass_shift, Some(1));
-        assert!(result.components[0].atoms[0].hydrogen_isotopes.is_empty());
+        assert_eq!(result.components[0].atoms[0].hydrogen_isotopes.len(), 0);
     }
 
     #[test]
@@ -318,7 +320,7 @@ mod tests {
         // i;1+2 → component 0 empty, component 1 atom 0 shift +2
         let result = parse("i;1+2", None, "H2O.CH4").unwrap();
         assert_eq!(result.components.len(), 2);
-        assert!(result.components[0].atoms.is_empty());
+        assert_eq!(result.components[0].atoms.len(), 0);
         assert_eq!(result.components[1].atoms.len(), 1);
         assert_eq!(result.components[1].atoms[0].atom_index, 0);
         assert_eq!(result.components[1].atoms[0].mass_shift, Some(2));
@@ -329,8 +331,8 @@ mod tests {
         // i with nothing → 1 component, no atoms, no H isotopes
         let result = parse("i", None, "H2O").unwrap();
         assert_eq!(result.components.len(), 1);
-        assert!(result.components[0].atoms.is_empty());
-        assert!(result.components[0].hydrogens.is_empty());
+        assert_eq!(result.components[0].atoms.len(), 0);
+        assert_eq!(result.components[0].hydrogens.len(), 0);
     }
 
     #[test]
@@ -441,12 +443,13 @@ mod tests {
 
     #[test]
     fn test_try_build_layer_does_not_consume_main_h_layer() {
-        // "i/h1H2" — the /h segment starts with a digit, so it's the main H layer
+        // "i/h1H2" — the /h segment starts with a digit, so it's the main H
+        // layer
         let f = formula("H2O");
         let mut input = "i/h1H2";
         let result = IsotopeLayer::try_build_layer(&mut input, (&f, None)).unwrap().unwrap();
         assert_eq!(input, "h1H2"); // /h1H2 is NOT consumed
-        assert!(result.components[0].hydrogens.is_empty());
+        assert_eq!(result.components[0].hydrogens.len(), 0);
     }
 
     #[test]
@@ -475,7 +478,7 @@ mod tests {
     fn test_h_segment_empty_body() {
         // "h" with no isotope letters → empty hydrogen list
         let result = parse("i", Some("h"), "H2O").unwrap();
-        assert!(result.components[0].hydrogens.is_empty());
+        assert_eq!(result.components[0].hydrogens.len(), 0);
     }
 
     #[test]
@@ -519,10 +522,10 @@ mod tests {
 
     #[test]
     fn test_empty_body_multi_component_single_result() {
-        // Empty atom body with multi-component formula → shortcut returns 1 component.
-        // This is the documented behavior: empty body + h sublayer is a
-        // single-component shorthand. Multi-component isotope layers use
-        // semicolons in the atom body.
+        // Empty atom body with multi-component formula → shortcut returns 1
+        // component. This is the documented behavior: empty body + h
+        // sublayer is a single-component shorthand. Multi-component
+        // isotope layers use semicolons in the atom body.
         let result = parse("i", Some("hD2"), "H2O.CH4").unwrap();
         assert_eq!(result.components.len(), 1);
     }
@@ -536,7 +539,7 @@ mod tests {
         let mut input = "i/h";
         let result = IsotopeLayer::try_build_layer(&mut input, (&f, None)).unwrap().unwrap();
         assert_eq!(input, "h"); // bare /h is NOT consumed as isotope sublayer
-        assert!(result.components[0].hydrogens.is_empty());
+        assert_eq!(result.components[0].hydrogens.len(), 0);
     }
 
     #[test]
@@ -546,7 +549,7 @@ mod tests {
         let mut input = "i/h/f1";
         let result = IsotopeLayer::try_build_layer(&mut input, (&f, None)).unwrap().unwrap();
         assert_eq!(input, "h/f1"); // /h/f1 is NOT consumed
-        assert!(result.components[0].hydrogens.is_empty());
+        assert_eq!(result.components[0].hydrogens.len(), 0);
     }
 
     #[test]
@@ -556,8 +559,8 @@ mod tests {
         let mut input = "i";
         let result = IsotopeLayer::try_build_layer(&mut input, (&f, None)).unwrap().unwrap();
         assert_eq!(input, "");
-        assert!(result.components[0].atoms.is_empty());
-        assert!(result.components[0].hydrogens.is_empty());
+        assert_eq!(result.components[0].atoms.len(), 0);
+        assert_eq!(result.components[0].hydrogens.len(), 0);
     }
 
     // --- zero mass shift ---
@@ -568,7 +571,7 @@ mod tests {
         let result = parse("i1+0", None, "CH4").unwrap();
         assert_eq!(result.components[0].atoms[0].atom_index, 0);
         assert_eq!(result.components[0].atoms[0].mass_shift, Some(0));
-        assert!(result.components[0].atoms[0].hydrogen_isotopes.is_empty());
+        assert_eq!(result.components[0].atoms[0].hydrogen_isotopes.len(), 0);
     }
 
     #[test]

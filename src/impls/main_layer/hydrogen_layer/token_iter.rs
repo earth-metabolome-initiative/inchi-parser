@@ -134,8 +134,8 @@ where
                     return Err(HydrogenLayerTokenError::InvalidCharacter(')'));
                 }
                 HydrogenLayerSubTokens::Asterisk(_) => {
-                    // Asterisk should have been consumed by the caller before invoking
-                    // parse_component
+                    // Asterisk should have been consumed by the caller before
+                    // invoking parse_component
                     return Err(HydrogenLayerTokenError::InvalidCharacter('*'));
                 }
             }

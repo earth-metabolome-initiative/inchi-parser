@@ -29,8 +29,8 @@ impl FromStrWithContext for AtomConnectionLayer<u16> {
             return Err(Error::MissingInchiPrefix);
         };
 
-        // If there are multiple molecules in the molecular formula, we need to split
-        // the atom connections layer at the ';' character
+        // If there are multiple molecules in the molecular formula, we need to
+        // split the atom connections layer at the ';' character
         let mut subformulas = context.subformulas();
         let mut molecular_graphs = Vec::with_capacity(context.number_of_mixtures());
         for molecular_graph_input in s.split(';') {
