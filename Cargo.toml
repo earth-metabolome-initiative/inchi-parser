@@ -9,7 +9,7 @@ description = "An InChI parser in Rust"
 readme = "README.md"
 
 [dependencies]
-geometric-traits = { git = "https://github.com/earth-metabolome-initiative/geometric-traits", version = "0.1.0" }
+geometric-traits = { git = "https://github.com/earth-metabolome-initiative/geometric-traits", version = "0.2" }
 thiserror = "2.0"
 num-traits = "0.2"
 elements_rs = "0.1.4"
