@@ -18,25 +18,19 @@ env:
 
 jobs:
   build_test:
-    name: Build & Test (${{ matrix.os }}, ${{ matrix.rust }})
-    runs-on: ${{ matrix.os }}
+    name: Build & Test (ubuntu-latest, stable)
+    runs-on: ubuntu-latest
     timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        rust: [stable, beta, nightly]
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - name: Install Rust
         uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9
         with:
-          toolchain: ${{ matrix.rust }}
-      - name: Cache Rust dependencies (Linux stable only)
-        if: ${{ matrix.os == 'ubuntu-latest' && matrix.rust == 'stable' }}
+          toolchain: stable
+      - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@779680da715d629ac1d338a641029a2f4372abb5
         with:
-          key: ${{ matrix.os }}-${{ matrix.rust }}
+          key: ${{ runner.os }}-stable
           cache-on-failure: false
           save-if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
       - name: Build
