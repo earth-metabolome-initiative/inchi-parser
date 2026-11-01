@@ -21,13 +21,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - name: Install Rust
-        uses: dtolnay/rust-toolchain@efa25f7f19611383d5b0ccf2d1c8914531636bf9
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
         with:
           toolchain: stable
       - name: Install cargo-audit
-        uses: taiki-e/install-action@aba36d755ec7ca22d38b12111787c26115943952
+        uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32
         with:
           tool: cargo-audit
       - name: Run security audit
